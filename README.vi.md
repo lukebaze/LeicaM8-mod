@@ -137,10 +137,24 @@ trong file); không vẽ tay.
 ## Thử 1: Blackfin có dùng ma trận không?
 
 ```sh
-python3 tools/m8lut.py bw-test     # build/m8-2_014-bwtest.upd: #14 và #15 -> đen trắng, 36 byte
+python3 tools/m8lut.py bw-test         # #14/#15 -> đen trắng, đường cong 7 -> 0.6× (đối chứng)
+python3 tools/m8lut.py bw-test --all   # cả 30 ma trận + 15 đường cong, cùng thay đổi
 ```
 
+Đường cong tối hơn là đối chứng trên đường đã chứng minh trên máy (Stage 11/12 của gasdevmco): nó cho
+biết bảng GAMMA thật sự đã nạp, nên JPG còn màu không bị nhầm với flash hỏng.
+
 1. Pin đầy; thẻ thứ hai chỉ chứa `m8-2_014.upd` gốc để rollback.
-2. Chép file build vào thẻ, **đổi tên trên thẻ thành `M8-2_014.UPD`**, cập nhật firmware như bình thường.
-3. Đặt Color space **sRGB**, Saturation **Standard**, chụp JPG một cảnh nhiều màu.
-4. JPG đen trắng → ma trận được dùng. Không đổi → ghi lại, flash gốc.
+2. Chép `bwtest.upd` vào thẻ, **đổi tên trên thẻ thành `M8-2_014.UPD`**, cập nhật firmware.
+3. Color space **sRGB**, Saturation **Standard**, Contrast **Standard**; chụp JPG cảnh nhiều màu.
+
+| JPG | Ý nghĩa | Bước tiếp |
+|---|---|---|
+| tối + đen trắng | ma trận được dùng, đoán slot đúng | flash bản có look |
+| tối + còn màu | đường cong được dùng; #14/#15 không (sai slot, hoặc ma trận nằm chỗ khác) | flash `bwtest-all.upd`, chụp lại cảnh đó |
+| bình thường + còn màu | GAMMA chưa nạp, hoặc sai setting | xem Color space / Saturation / Contrast trong EXIF, flash lại |
+
+Với `bwtest-all.upd`: đen trắng ở bất kỳ setting nào → ma trận được dùng, chỉ là map slot sai; chia đôi để
+tìm. Vẫn còn màu → 30 ma trận này không điều khiển JPG; look chỉ còn nửa tone (fit chỉ-curve gần như
+không giảm ΔE), nên đừng flash bản look; khâu màu khi đó nằm trong code Blackfin hoặc LUT khác
+(`LEICA`, `GAIN`), cần disassemble Blackfin.
