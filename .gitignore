@@ -1,0 +1,5 @@
+firmware/
+build/
+research/clut/
+*.LUT
+__pycache__/
