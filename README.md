@@ -1,16 +1,39 @@
-# LeicaM8
+<p align="center"><img src="docs/banner.png" alt="A 35 mm film strip with three frames, each a ColorChecker chart rendered through the M8's JPG pipeline: Leica stock, Kodachrome 64, Portra 160" width="100%"></p>
 
-[Tiếng Việt](README.vi.md)
+<h1 align="center">LeicaM8</h1>
 
-Custom JPG colour (Portra, Kodachrome…) for the Leica M8, firmware 2.014, by editing `LUTS/GAMMA`
-(tone curves + colour matrices). `PXA` is never touched, so the bootloader and the SD-card updater
-stay stock.
+<p align="center">
+  <b>Kodachrome 64 and Portra 160 for the Leica M8's in-camera JPGs, built from Kodak datasheets.</b><br>
+  One flash: two film looks, Leica's own colour, and the 14-bit DNG patch.
+</p>
 
-Builds on [gasdevmco/leica-m8-firmware](https://github.com/gasdevmco/leica-m8-firmware) (MIT):
-the `.upd` format, and GAMMA tone curves proven on a camera.
+<p align="center">
+  <img alt="firmware 2.014" src="https://img.shields.io/badge/firmware-2.014-161110?style=flat-square">
+  <img alt="status: not camera-tested" src="https://img.shields.io/badge/status-not%20camera--tested-e8a03a?style=flat-square">
+  <img alt="sensor: KAF-10500 CCD" src="https://img.shields.io/badge/sensor-KAF--10500%20CCD-5c5046?style=flat-square">
+  <a href="LICENSE"><img alt="license: MIT" src="https://img.shields.io/badge/license-MIT-5c5046?style=flat-square"></a>
+  <a href="README.vi.md"><img alt="Tiếng Việt" src="https://img.shields.io/badge/đọc-tiếng%20Việt-5c5046?style=flat-square"></a>
+</p>
+
+| Colour space (camera menu) | JPG look |
+|---|---|
+| sRGB | Kodachrome 64, slide viewed at D65 |
+| Adobe RGB | Portra 160 printed on Kodak Portra Endura |
+| ECI RGB | Leica stock |
+
+This project only edits `LUTS/GAMMA` (colour matrices + tone curves). The optional base, the 14-bit DNG
+build of [gasdevmco/leica-m8-firmware](https://github.com/gasdevmco/leica-m8-firmware) (MIT), edits
+only `PXA`. The two never overlap; the bootloader and SD-card updater stay stock.
+
+> [!WARNING]
+> Nothing here has run on a camera yet. The tone curves follow a path gasdevmco proved on hardware;
+> the colour matrices are inferred from static analysis. Flash `bw-test` first (below), and keep a card
+> with the stock `m8-2_014.upd` to roll back.
 
 **Never commit Leica firmware.** `firmware/stock/m8-2_014.upd` (SHA-256 `99f52548…09ed0`, source:
 `fichiers.touslesdrivers.com/38007/m8-2_014.zip`) and `build/` are git-ignored.
+
+<p align="center"><img src="docs/compare.png" alt="ColorChecker patches split in half: Leica stock on the left, the look on the right, with CIEDE2000 between the halves" width="100%"></p>
 
 ## Colour matrices (GAMMA + 0x1D0): static analysis, not yet camera-tested
 
@@ -110,9 +133,10 @@ Noise = gain relative to Leica stock. IR chroma is an **assumption** (NIR leaks 
 G); a UV/IR filter is still recommended. 3×3 matrix limit: Kodachrome yellows/blues come out lighter
 than the simulation (film yellow 244,220,84 → M8 222,209,110).
 
-![comparison](docs/compare.png)
+<p align="center"><img src="docs/curves.png" alt="Tone curves: grey ramp from -7 to +2.5 EV through Leica stock, Kodachrome 64 and Portra 160; the film looks have deeper shadows and meet at mid-grey" width="80%"></p>
 
-![preview](docs/preview.png)
+Images: `python3 docs/make_images.py` renders them from the built `.upd` (matrices + curves read back
+from the file); nothing is painted by hand.
 
 ## Test 1: does the Blackfin use the matrices?
 

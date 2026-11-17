@@ -1,15 +1,39 @@
-# LeicaM8
+<p align="center"><img src="docs/banner.png" alt="Dải film 35mm ba khung, mỗi khung là bảng ColorChecker render qua pipeline JPG của M8: Leica gốc, Kodachrome 64, Portra 160" width="100%"></p>
 
-[English](README.md)
+<h1 align="center">LeicaM8</h1>
 
-Màu JPG tuỳ biến (Portra, Kodachrome…) cho Leica M8, firmware 2.014, bằng cách sửa `LUTS/GAMMA`
-(đường cong tone + ma trận màu). Không đụng `PXA`, nên không chạm bootloader/updater.
+<p align="center">
+  <b>Kodachrome 64 và Portra 160 cho JPG trong máy Leica M8, dựng từ datasheet Kodak.</b><br>
+  Một lần flash: hai look film, màu Leica gốc, và patch DNG 14-bit.
+</p>
 
-Dựa trên [gasdevmco/leica-m8-firmware](https://github.com/gasdevmco/leica-m8-firmware) (MIT):
-định dạng `.upd`, đường cong GAMMA đã được chứng minh trên máy thật.
+<p align="center">
+  <img alt="firmware 2.014" src="https://img.shields.io/badge/firmware-2.014-161110?style=flat-square">
+  <img alt="trạng thái: chưa thử trên máy" src="https://img.shields.io/badge/trạng%20thái-chưa%20thử%20trên%20máy-e8a03a?style=flat-square">
+  <img alt="cảm biến: KAF-10500 CCD" src="https://img.shields.io/badge/cảm%20biến-KAF--10500%20CCD-5c5046?style=flat-square">
+  <a href="LICENSE"><img alt="license: MIT" src="https://img.shields.io/badge/license-MIT-5c5046?style=flat-square"></a>
+  <a href="README.md"><img alt="English" src="https://img.shields.io/badge/read-English-5c5046?style=flat-square"></a>
+</p>
+
+| Color space (menu máy) | Look JPG |
+|---|---|
+| sRGB | Kodachrome 64, slide xem ở D65 |
+| Adobe RGB | Portra 160 in trên Kodak Portra Endura |
+| ECI RGB | Leica gốc |
+
+Project này chỉ sửa `LUTS/GAMMA` (ma trận màu + đường cong tone). Base tuỳ chọn, bản DNG 14-bit của
+[gasdevmco/leica-m8-firmware](https://github.com/gasdevmco/leica-m8-firmware) (MIT), chỉ sửa `PXA`.
+Hai phần không chồng nhau; bootloader và updater thẻ SD giữ nguyên gốc.
+
+> [!WARNING]
+> Chưa có gì ở đây chạy trên máy thật. Đường cong tone đi theo cách gasdevmco đã chứng minh trên máy;
+> ma trận màu suy ra từ phân tích tĩnh. Flash `bw-test` trước (bên dưới), và giữ một thẻ chứa
+> `m8-2_014.upd` gốc để rollback.
 
 **Không commit firmware Leica.** `firmware/stock/m8-2_014.upd` (SHA-256 `99f52548…09ed0`, nguồn:
 `fichiers.touslesdrivers.com/38007/m8-2_014.zip`) và `build/` bị gitignore.
+
+<p align="center"><img src="docs/compare.png" alt="Các ô ColorChecker chia đôi: trái là Leica gốc, phải là look, kèm CIEDE2000 giữa hai nửa" width="100%"></p>
 
 ## Ma trận màu (GAMMA + 0x1D0) — tĩnh, chưa thử trên máy
 
@@ -105,9 +129,10 @@ Noise = độ khuếch đại so với Leica gốc. Chroma IR là **giả địn
 nên dùng filter UV/IR. Giới hạn của ma trận 3×3: vàng/xanh dương Kodachrome nhạt hơn mô phỏng
 (vàng film 244,220,84 → M8 222,209,110).
 
-![so sánh](docs/compare.png)
+<p align="center"><img src="docs/curves.png" alt="Đường cong tone: dải xám từ -7 đến +2.5 EV qua Leica gốc, Kodachrome 64 và Portra 160; look film có vùng tối sâu hơn và gặp nhau ở mid-grey" width="80%"></p>
 
-![preview](docs/preview.png)
+Ảnh: `python3 docs/make_images.py` render từ chính file `.upd` đã build (đọc lại ma trận + đường cong
+trong file); không vẽ tay.
 
 ## Thử 1: Blackfin có dùng ma trận không?
 
