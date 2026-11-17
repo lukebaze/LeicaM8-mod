@@ -22,7 +22,6 @@ the `.upd` format, and GAMMA tone curves proven on a camera.
 - Variant B: at Standard it is exactly variant A with the G and B coefficients of the **red row** swapped
   (#14/#15); the other steps differ further. Meaning unknown, so builds transform every matrix on its
   own and assume nothing about A/B.
-  Meaning unknown.
 - #14 (sRGB Standard) is the closest to the camera→sRGB matrix derived from dcraw/Adobe's M8
   coefficients.
 
