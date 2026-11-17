@@ -2,21 +2,29 @@
 """Patch colour matrices and tone curves in LUTS/GAMMA of Leica M8 firmware 2.014.
 
 GAMMA layout (README): +0x1D0 30 matrices, 3x3 int16 Q13 (8192 = 1.0), index = 10*space + 2*saturation
-+ variant, space 1 = sRGB; +0x410 15 curves x 2048 u8, curve = 5*space + contrast, input linear
-0..2047 = black..white. Camera JPG = curve(matrix . camera RGB after white balance).
++ variant; +0x410 15 curves x 2048 u8, curve = 5*space + contrast, input linear 0..2047 = black..white.
+Space 0 = Adobe RGB, 1 = sRGB, 2 = ECI RGB (the Colour space menu). JPG = curve(matrix . camera RGB).
 
-  python3 tools/m8lut.py dump                    # print all 30 matrices
-  python3 tools/m8lut.py bw-test                 # #14+#15 -> monochrome (does the Blackfin use them?)
-  python3 tools/m8lut.py look Kodak_Portra_160_2 [--out NAME]
-      # sRGB colour space: 10 matrices + 5 curves from research/fits (see build_look)
+  python3 tools/m8lut.py dump                     # print all 30 matrices
+  python3 tools/m8lut.py bw-test                  # #14+#15 -> monochrome (does the Blackfin use them?)
+  python3 tools/m8lut.py build [--base FILE] [--srgb LOOK] [--adobe LOOK] [--eci LOOK] [--out NAME]
+      LOOK = research/fits/fit_<LOOK>.npz, e.g. SFL_Portra_160_Endura. A space without a look keeps Leica's.
+      --base: start from a gasdevmco/leica-m8-firmware 2.014 build (14-bit DNG, PXA only) instead of stock;
+              accepted only if its SHA-256 is one of that project's published builds and GAMMA is stock.
 """
 import hashlib, os, struct, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 STOCK = os.path.join(ROOT, 'firmware', 'stock', 'm8-2_014.upd')
 STOCK_SHA = '99f5254847a92c68086f37b1a4140c359379801b479df12052136abb73f09ed0'
+BASES = {  # gasdevmco/leica-m8-firmware v0.10.0 m8patch.py builds (README "Builds"); all change PXA only
+    '9b9a489a0decff5bc1a52ba8ff2b4574a608ae7a8fa1bc41fc6bfa9a49c02c04': '14-bit DNG',
+    '624448c6190de500028e4c583993cf9047c791504e5f9bc4c45a31b79af42af8': '14-bit DNG + INFO',
+    '89fbcc00674f69524b9460fa0e47659c4ff5f422767d3f9d1f4dff3436368f21': '14-bit DNG + dial EV/ISO',
+    '4cefacf137a8013c69d0400a1393d3667f369fdfa4e601ecb38dd3a55286376b': '14-bit DNG + INFO + dial EV/ISO',
+}
 MAT_OFF, N_MAT, CURVE_OFF, CURVE_LEN = 0x1D0, 30, 0x410, 2048
-SRGB_MATS, SRGB_CURVES = range(10, 20), range(5, 10)
+SPACES = {'adobe': 0, 'srgb': 1, 'eci': 2}
 MID_GREY = 0.18
 
 
@@ -32,13 +40,18 @@ def wad(b, base=0):
 
 
 def load(path=STOCK, check=True):
-    """-> (file bytes, absolute offset of GAMMA)."""
+    """-> (file bytes, absolute offset of GAMMA). check: stock, or a known DNG base with stock GAMMA."""
     d = open(path, 'rb').read()
-    if check and hashlib.sha256(d).hexdigest() != STOCK_SHA:
-        sys.exit('not the stock m8-2_014.upd (SHA-256 mismatch)')
     luts, _ = wad(d)['LUTS']
     gamma, size = wad(d, luts)['GAMMA']
     assert size == 31760 and struct.unpack_from('<I', d, gamma + 4)[0] == CURVE_OFF, 'unexpected GAMMA layout'
+    if check:
+        sha = hashlib.sha256(d).hexdigest()
+        if sha != STOCK_SHA and sha not in BASES:
+            sys.exit(f'{path}: neither stock m8-2_014.upd nor a known 14-bit DNG build (SHA-256 {sha})')
+        if sha != STOCK_SHA:
+            s, sg = load(STOCK)
+            assert sg == gamma and s[gamma:gamma + size] == d[gamma:gamma + size], 'base GAMMA is not stock'
     return bytearray(d), gamma
 
 
@@ -61,43 +74,63 @@ def q13(rows):
     return struct.pack('<9h', *out)
 
 
-def write(d, patches, name):
-    """patches: {absolute offset: bytes}. Refuses any change outside them."""
-    stock = open(STOCK, 'rb').read()
+def write(d, patches, name, base):
+    """patches: {absolute offset: bytes}. Refuses any change from `base` outside them."""
+    ref = open(base, 'rb').read()
     for o, b in patches.items():
         d[o:o + len(b)] = b
     spans = [(o, o + len(b)) for o, b in patches.items()]
-    changed = [i for i in range(len(d)) if d[i] != stock[i]]
-    assert len(d) == len(stock) and all(any(lo <= i < hi for lo, hi in spans) for i in changed), \
+    changed = [i for i in range(len(d)) if d[i] != ref[i]]
+    assert len(d) == len(ref) and all(any(lo <= i < hi for lo, hi in spans) for i in changed), \
         'bytes changed outside the patched regions'
     os.makedirs(os.path.join(ROOT, 'build'), exist_ok=True)
     out = os.path.join(ROOT, 'build', name)
     if os.path.exists(out):
         sys.exit(f'{out} exists, not overwriting')
     open(out, 'wb').write(d)
-    print(f'{out}\n  {len(changed)} bytes changed, all inside GAMMA\n  SHA-256 {hashlib.sha256(d).hexdigest()}')
+    print(f'{out}\n  {len(changed)} bytes changed from {os.path.basename(base)}, all inside GAMMA'
+          f'\n  SHA-256 {hashlib.sha256(d).hexdigest()}')
     print('  on the card rename it to M8-2_014.UPD; roll back by flashing the stock file')
     return out
 
 
-def build_look(d, g, fit):
-    """Look on the sRGB colour space: matrix_i' = M_look . matrix_i, Contrast steps kept as Leica's maps
-    (standard value -> value at step c). Curve, made for the CCD:
-      - tone from the film's grey axis (the shared curve that puts each channel of a neutral where the
-        CLUT does), so blacks and shadows follow the film, not a fit dominated by saturated colours;
+def space_tools(space):
+    """(T, encode) for a colour space: T = linear sRGB (D65) -> that space's linear RGB (Bradford to D50
+    for ECI), encode = its transfer function. Leica's own curve rows follow these encodings (FINDINGS)."""
+    import numpy as np
+    xyz = lambda p: np.array([p[0] / p[1], 1, (1 - p[0] - p[1]) / p[1]])
+    def to_xyz(prims, white):
+        P = np.stack([xyz(p) for p in prims], 1)
+        return P * np.linalg.solve(P, xyz(white))
+    D50, D65 = (0.3457, 0.3585), (0.3127, 0.3290)
+    srgb = to_xyz([(0.64, 0.33), (0.30, 0.60), (0.15, 0.06)], D65)
+    if space == 1:
+        return np.eye(3), lambda v: np.where(v <= 0.0031308, 12.92 * v, 1.055 * np.maximum(v, 0) ** (1 / 2.4) - 0.055)
+    if space == 0:
+        return np.linalg.inv(to_xyz([(0.64, 0.33), (0.21, 0.71), (0.15, 0.06)], D65)) @ srgb, lambda v: np.maximum(v, 0) ** (256 / 563)
+    bradford = np.array([[1.0478112, 0.0228866, -0.0501270], [0.0295424, 0.9904844, -0.0170491],
+                         [-0.0092345, 0.0150436, 0.7521316]])
+    return np.linalg.inv(to_xyz([(0.67, 0.33), (0.21, 0.71), (0.14, 0.08)], D50)) @ bradford @ srgb, lambda v: np.maximum(v, 0) ** (1 / 1.8)
+
+
+def build_look(d, g, fit, space=1):
+    """Look for one colour space. The look is defined in linear sRGB, so it is applied there on top of the
+    space's own Leica rendering: matrix_i' = T . M_look . T^-1 . matrix_i (T = I for sRGB). Contrast steps
+    kept as Leica's maps (standard value -> value at step c). Curve, made for the CCD:
+      - tone from the film's grey axis (channel mean), black-point compensated as in ICC perceptual
+        rendering (film/paper Dmax -> 0, paper white -> 255);
       - mid-grey at Leica's 147, the level the M8's metering is made for;
       - shoulder: above mid-grey the exposure gain rolls off (linear in log2) to 1.0 at sensor clip, so
-        the curve reaches 255 only where the CCD clips: no highlight range the sensor kept is thrown away."""
+        the curve reaches 255 only where the CCD clips: no highlight range the sensor kept is thrown away;
+      - built as an sRGB curve, then re-encoded for the space (Leica's rows are the same tone encoded 3 ways).
+    Matrix rows sum to 1, as in all 30 Leica matrices: greys stay grey (the camera's AWB keeps working) and
+    a clipped CCD highlight stays neutral. The unconstrained fit tints every grey to average out the film's
+    shadow/highlight crossover, which a single shared curve cannot reproduce anyway."""
     import numpy as np
-    # rows sum to 1, as in all 30 Leica matrices: greys stay grey, so the camera's AWB keeps working and a
-    # clipped CCD highlight stays neutral. The unconstrained fit tints every grey to average out the
-    # film's shadow/highlight crossover, which a single shared curve cannot reproduce anyway.
     M = fit['M_white']
-    # tone = film's grey axis (channel mean; rows sum to 1, so a grey u reaches the curve as u), with
-    # black-point compensation as in ICC perceptual rendering: film/paper Dmax -> 0, paper white -> 255
     u = fit['neutral_in']; y = np.maximum.accumulate(fit['neutral_out'].mean(1))
     look = lambda v: (np.interp(np.clip(v, 0, 1), u, y) - y[0]) / (y[-1] - y[0])   # 0..1 -> 0..1
-    stock = {k: np.array(curve(d, g, k), float) for k in SRGB_CURVES}
+    stock = {k: np.array(curve(d, g, k), float) for k in range(5, 10)}             # Leica's sRGB row
     x = np.arange(CURVE_LEN) / (CURVE_LEN - 1)
     target = np.interp(MID_GREY, x, stock[7]) / 255
     ks = np.linspace(0.5, 4, 3501)
@@ -105,31 +138,45 @@ def build_look(d, g, fit):
     lx = np.log2(np.maximum(x, 1e-9)); lm = np.log2(MID_GREY)
     xin = np.where(x <= MID_GREY, gain * x, 2 ** (lx + np.log2(gain) * lx / lm))
     std = np.maximum.accumulate(np.round(255 * look(xin)).clip(0, 255))
+    T, enc = space_tools(space)
+    dec_srgb = lambda v: np.where(v <= 0.04045, v / 12.92, ((v + 0.055) / 1.055) ** 2.4)
     patches = {}
     s7 = stock[7] + x * 1e-6                                                 # strictly increasing for inversion
-    for k in SRGB_CURVES:
-        new = std if k == 7 else np.round(np.interp(np.interp(std, s7, x), x, stock[k]))
-        patches[g + CURVE_OFF + CURVE_LEN * k] = bytes(np.maximum.accumulate(new).astype(np.uint8))
-    for i in SRGB_MATS:
-        patches[g + MAT_OFF + 18 * i] = q13((M @ np.array(matrix(d, g, i))).tolist())
+    for c in range(5):
+        new = std if c == 2 else np.round(np.interp(np.interp(std, s7, x), x, stock[5 + c]))
+        if space != 1:
+            new = np.round(255 * enc(dec_srgb(new / 255)))
+        patches[g + CURVE_OFF + CURVE_LEN * (5 * space + c)] = bytes(np.maximum.accumulate(new).clip(0, 255).astype(np.uint8))
+    Ms = T @ M @ np.linalg.inv(T)
+    for i in range(10 * space, 10 * space + 10):
+        patches[g + MAT_OFF + 18 * i] = q13((Ms @ np.array(matrix(d, g, i))).tolist())
     return patches, gain
 
 
 def main():
+    import numpy as np
     a = sys.argv[1:]
     cmd = a[0] if a else 'dump'
-    d, g = load()
+    opt = lambda k: a[a.index(k) + 1] if k in a else None
+    base = opt('--base') or STOCK
+    d, g = load(base)
     if cmd == 'dump':
         for i in range(N_MAT):
             print(f'{i:2d} file 0x{g + MAT_OFF + 18 * i:05X}', ' | '.join(' '.join(f'{v:6.3f}' for v in r) for r in matrix(d, g, i)))
     elif cmd == 'bw-test':
-        write(d, {g + MAT_OFF + 18 * s: q13([[0.299, 0.587, 0.114]] * 3) for s in (14, 15)}, 'm8-2_014-bwtest.upd')
-    elif cmd == 'look' and len(a) > 1:
-        import numpy as np
-        name = a[a.index('--out') + 1] if '--out' in a else f'm8-2_014-{a[1].lower()}.upd'
-        patches, gain = build_look(d, g, np.load(os.path.join(ROOT, 'research', 'fits', f'fit_{a[1]}.npz')))
-        print(f'exposure gain {gain:.3f} ({np.log2(gain):+.2f} EV) below mid-grey to match Leica mid-grey')
-        write(d, patches, name)
+        write(d, {g + MAT_OFF + 18 * s: q13([[0.299, 0.587, 0.114]] * 3) for s in (14, 15)}, 'm8-2_014-bwtest.upd', base)
+    elif cmd == 'build':
+        looks = {s: opt('--' + s) for s in SPACES if opt('--' + s)}
+        if not looks:
+            sys.exit(__doc__)
+        print(f'base: {BASES.get(hashlib.sha256(open(base, "rb").read()).hexdigest(), "Leica stock 2.014")}')
+        patches = {}
+        for s, name in looks.items():
+            p, gain = build_look(d, g, np.load(os.path.join(ROOT, 'research', 'fits', f'fit_{name}.npz')), SPACES[s])
+            patches.update(p)
+            print(f'{s:5s} <- {name}  (exposure gain {gain:.3f}, {np.log2(gain):+.2f} EV below mid-grey)')
+        dng = '-dng' if base != STOCK else ''
+        write(d, patches, opt('--out') or f'm8-2_014{dng}-' + '-'.join(f'{s}_{n.lower()}' for s, n in looks.items()) + '.upd', base)
     else:
         sys.exit(__doc__)
 

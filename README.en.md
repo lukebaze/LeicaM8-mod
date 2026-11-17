@@ -19,7 +19,9 @@ the `.upd` format, and GAMMA tone curves proven on a camera.
 - Index = 10·colour space + 2·saturation + variant. Space 1 = sRGB (largest determinants; 0/2 assumed
   Adobe/ECI, matching the tone-curve row order). Saturation 0..4 = Low..High (determinant rises
   monotonically).
-- Variant B = variant A with the G and B coefficients of the **red row** swapped (e.g. #14/#15).
+- Variant B: at Standard it is exactly variant A with the G and B coefficients of the **red row** swapped
+  (#14/#15); the other steps differ further. Meaning unknown, so builds transform every matrix on its
+  own and assume nothing about A/B.
   Meaning unknown.
 - #14 (sRGB Standard) is the closest to the camera→sRGB matrix derived from dcraw/Adobe's M8
   coefficients.
@@ -44,8 +46,9 @@ nothing. Fit results: `research/fits/*.npz` (`M`, `curve` on the grid v = u^(1/2
 ```sh
 research/.venv/bin/python research/spectral_gen.py   # looks from Kodak datasheets -> research/clut/SFL *.npz
 python3 research/film_fit.py "research/clut/SFL Kodachrome 64.npz" "research/clut/SFL Portra 160 Endura.npz"
-python3 tools/m8lut.py look SFL_Portra_160_Endura   # build/m8-2_014-sfl_portra_160_endura.upd
-python3 tools/m8lut.py look SFL_Kodachrome_64
+python3 tools/m8lut.py build --srgb SFL_Portra_160_Endura          # one look, on stock firmware
+python3 tools/m8lut.py build --base firmware/dng/m8-2_014-patched.upd \
+    --srgb SFL_Portra_160_Endura --adobe SFL_Kodachrome_64 --out m8-2_014-dng14-portra-kodachrome.upd
 python3 research/ccd_check.py build/X.upd "research/clut/<look>.npz" ...   # metrics + build/preview.png
 ```
 
@@ -60,9 +63,31 @@ ColorChecker patches through [spektrafilm](https://github.com/andreavolpato/spek
 different spectral simulator, also datasheet-driven): median ΔE76 between the two simulators 5.6
 (Kodachrome 64), 9.6 (Portra 160 + Endura; spektrafilm renders warmer skin and stronger magenta).
 
-Only the **sRGB** colour space changes (matrices #10–19, curves 5–9). Adobe RGB / ECI RGB keep Leica's
-colour, so switching Colour space returns the stock look without reflashing. Saturation and Contrast
-keep working.
+Each Colour space in the menu has its own matrices and curves, so **one flash holds three looks**: a look
+is defined in linear sRGB and applied on top of that space's own Leica rendering
+(`T · M_look · T⁻¹ · Leica matrix`), with the curve re-encoded for the space (Adobe 2.2, ECI 1.8).
+Saturation and Contrast keep working. Adobe/ECI JPGs carry their own ICC profile (gasdevmco FINDINGS);
+view them in colour-managed apps.
+
+### Combined build: 14-bit DNG + Portra + Kodachrome
+
+`build/m8-2_014-dng14-portra-kodachrome.upd` (SHA-256 `af5697d6…cb8862`):
+
+| Colour space | JPG |
+|---|---|
+| sRGB | Portra 160 (Endura) |
+| Adobe RGB | Kodachrome 64 |
+| ECI RGB | Leica stock |
+
+- Base = build `9b9a489a…` of [gasdevmco/leica-m8-firmware](https://github.com/gasdevmco/leica-m8-firmware)
+  v0.10.0 (`python3 m8patch.py m8-2_014.upd`): persistent JPG fine+RAW + in-camera 14-bit DNG. That patch
+  changes only `PXA`, the colour profiles only `GAMMA`, so they cannot overlap. `m8lut.py` accepts a base
+  only if its hash is one of that project's published builds and its GAMMA is stock.
+- Checked: PXA = base byte for byte; GAMMA = union of the two single builds byte for byte; ECI stock;
+  everything else stock. Kodachrome in the Adobe slot, decoded to sRGB, differs from the sRGB-slot version
+  by median ΔE00 2.0, the same size as Leica's own Adobe vs sRGB stock (2.3): Leica tunes each space.
+- The 14-bit DNG is raw sensor data, untouched by the profiles. Precedent on a camera: gasdevmco's
+  Stage 12 (baked GAMMA curves + PXA patches) ran fine; matrices are not yet proven (see Test 1).
 
 CCD (KAF-10500) compatibility:
 

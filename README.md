@@ -17,7 +17,8 @@ Dựa trên [gasdevmco/leica-m8-firmware](https://github.com/gasdevmco/leica-m8-
   (`1742, 5858`) chưa rõ.
 - Chỉ số = 10·không gian màu + 2·bão hoà + biến thể. Không gian 1 = sRGB (định thức lớn nhất; 0/2 đoán
   Adobe/ECI theo thứ tự hàng đường cong). Bão hoà 0..4 = Low..High (định thức tăng đơn điệu).
-- Biến thể B = biến thể A với cột G và B của **hàng đỏ** đổi chỗ (vd #14/#15). Ý nghĩa chưa rõ.
+- Biến thể B: ở mức Standard đúng bằng biến thể A với cột G và B của **hàng đỏ** đổi chỗ (#14/#15); các mức
+  khác lệch thêm. Ý nghĩa chưa rõ, nên build biến đổi từng ma trận riêng, không giả định quan hệ A/B.
 - #14 (sRGB Standard) gần nhất với ma trận cam→sRGB tính từ hệ số M8 của dcraw/Adobe.
 
 ## Nghiên cứu look (`research/film_fit.py`)
@@ -39,8 +40,9 @@ Kết quả fit: `research/fits/*.npz` (`M`, `curve` trên lưới v = u^(1/2.2)
 ```sh
 research/.venv/bin/python research/spectral_gen.py   # look từ datasheet Kodak -> research/clut/SFL *.npz
 python3 research/film_fit.py "research/clut/SFL Kodachrome 64.npz" "research/clut/SFL Portra 160 Endura.npz"
-python3 tools/m8lut.py look SFL_Portra_160_Endura   # build/m8-2_014-sfl_portra_160_endura.upd
-python3 tools/m8lut.py look SFL_Kodachrome_64
+python3 tools/m8lut.py build --srgb SFL_Portra_160_Endura          # một look, trên firmware gốc
+python3 tools/m8lut.py build --base firmware/dng/m8-2_014-patched.upd \
+    --srgb SFL_Portra_160_Endura --adobe SFL_Kodachrome_64 --out m8-2_014-dng14-portra-kodachrome.upd
 python3 research/ccd_check.py build/X.upd "research/clut/<look>.npz" ...   # số đo + build/preview.png
 ```
 
@@ -55,8 +57,31 @@ ColorChecker qua [spektrafilm](https://github.com/andreavolpato/spektrafilm) (GP
 cũng từ datasheet): trung vị ΔE76 giữa hai bộ mô phỏng 5.6 (Kodachrome 64), 9.6 (Portra 160 + Endura;
 spektrafilm cho da ấm và magenta rực hơn). Hai nguồn độc lập cùng hướng → look có cơ sở.
 
-Chỉ sửa không gian **sRGB** (ma trận #10–19, đường cong 5–9). Adobe RGB / ECI RGB giữ màu Leica gốc,
-nên đổi Color space là về màu gốc, không cần flash lại. Saturation và Contrast vẫn hoạt động.
+Mỗi Color space trong menu là một bộ ma trận + đường cong riêng, nên **một bản flash chứa được 3 look**:
+look định nghĩa trong sRGB tuyến tính, áp lên rendering Leica của chính không gian đó
+(`T · M_look · T⁻¹ · ma trận Leica`), đường cong mã hoá lại theo gamma của không gian (Adobe 2.2, ECI 1.8).
+Saturation và Contrast vẫn hoạt động. JPG Adobe/ECI mang ICC profile riêng (gasdevmco FINDINGS), xem
+bằng app có quản lý màu.
+
+### Bản kết hợp: 14-bit DNG + Portra + Kodachrome
+
+`build/m8-2_014-dng14-portra-kodachrome.upd` (SHA-256 `af5697d6…cb8862`):
+
+| Color space | JPG |
+|---|---|
+| sRGB | Portra 160 (Endura) |
+| Adobe RGB | Kodachrome 64 |
+| ECI RGB | Leica gốc |
+
+- Base = build `9b9a489a…` của [gasdevmco/leica-m8-firmware](https://github.com/gasdevmco/leica-m8-firmware)
+  v0.10.0 (`python3 m8patch.py m8-2_014.upd`): JPG fine+RAW giữ được + DNG 14-bit trong máy. Patch đó
+  chỉ đổi `PXA`, profile màu chỉ đổi `GAMMA` → không chồng nhau. `m8lut.py` chỉ nhận base có hash nằm
+  trong danh sách build công bố của dự án đó và GAMMA của base phải là gốc.
+- Đã kiểm: PXA = base từng byte; GAMMA = hợp của 2 build đơn từng byte; ECI giữ gốc; mọi phần khác = gốc.
+  Kodachrome ở slot Adobe giải mã về sRGB lệch trung vị ΔE00 2.0 so với slot sRGB — cùng cỡ với chính
+  Leica (Adobe vs sRGB gốc: 2.3), vì Leica tự chỉnh riêng từng không gian.
+- DNG 14-bit là dữ liệu cảm biến thô: không bị profile ảnh hưởng. Đã có tiền lệ trên máy thật: Stage 12
+  của gasdevmco (đường cong GAMMA bake + patch PXA) chạy tốt; ma trận thì chưa (xem Thử 1).
 
 Tương thích cảm biến CCD (KAF-10500):
 
