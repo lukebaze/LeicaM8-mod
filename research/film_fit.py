@@ -11,6 +11,10 @@ from PIL import Image
 
 N = 144
 def load(p):
+    """HaldCLUT PNG (level 12) or spectral_gen.py .npz, same 144^3 layout -> (x, y) sRGB-encoded."""
+    if p.endswith('.npz'):
+        z = np.load(p)
+        return z['x'].astype(np.float64), z['y'].astype(np.float64)
     a = np.asarray(Image.open(p).convert('RGB'), np.float64).reshape(-1, 3) / 255
     i = np.arange(N ** 3)
     x = np.stack([i % N, i // N % N, i // N // N], 1) / (N - 1)

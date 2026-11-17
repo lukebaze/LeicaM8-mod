@@ -61,7 +61,8 @@ for upd, clut in zip(a[::2], a[1::2]):
     fit = np.load(os.path.join(HERE, 'fits', 'fit_' + os.path.basename(clut)[:-4].replace(' ', '_') + '.npz'))
     _, gain = m8lut.build_look(*m8lut.load(), fit)       # gain below mid-grey; above it the shoulder departs on purpose
     cam = lin(x[s]) @ np.linalg.inv(M14).T / gain
-    dE = np.median(de2000(lab(y[s]), lab(f(cam))))
+    ny = fit['neutral_out'].mean(1); y0, y1 = ny[0], ny[-1]                # same black-point compensation as the build
+    dE = np.median(de2000(lab((y[s] - y0) / (y1 - y0)), lab(f(cam))))
     clip = tuple(np.round(f(np.ones((1, 3)))[0] * 255).astype(int))
     c, h = ir_chroma(f)
     print(f'{os.path.basename(upd):44s} {dE:5.2f} {str(clip):>15s} {noise_gain(f, .01) / noise_gain(stock, .01):9.2f} '

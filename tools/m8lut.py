@@ -89,16 +89,19 @@ def build_look(d, g, fit):
       - shoulder: above mid-grey the exposure gain rolls off (linear in log2) to 1.0 at sensor clip, so
         the curve reaches 255 only where the CCD clips: no highlight range the sensor kept is thrown away."""
     import numpy as np
-    M = fit['M']
-    rs = M.sum(1)
-    u = np.concatenate([fit['neutral_in'] * r for r in rs]); y = fit['neutral_out'].T.ravel()
-    o = np.argsort(u); u, y = u[o], np.maximum.accumulate(y[o])
-    look = lambda v: np.interp(np.clip(v, 0, 1), u, y) / y[-1]                 # 0..1 -> 0..1
+    # rows sum to 1, as in all 30 Leica matrices: greys stay grey, so the camera's AWB keeps working and a
+    # clipped CCD highlight stays neutral. The unconstrained fit tints every grey to average out the
+    # film's shadow/highlight crossover, which a single shared curve cannot reproduce anyway.
+    M = fit['M_white']
+    # tone = film's grey axis (channel mean; rows sum to 1, so a grey u reaches the curve as u), with
+    # black-point compensation as in ICC perceptual rendering: film/paper Dmax -> 0, paper white -> 255
+    u = fit['neutral_in']; y = np.maximum.accumulate(fit['neutral_out'].mean(1))
+    look = lambda v: (np.interp(np.clip(v, 0, 1), u, y) - y[0]) / (y[-1] - y[0])   # 0..1 -> 0..1
     stock = {k: np.array(curve(d, g, k), float) for k in SRGB_CURVES}
     x = np.arange(CURVE_LEN) / (CURVE_LEN - 1)
     target = np.interp(MID_GREY, x, stock[7]) / 255
     ks = np.linspace(0.5, 4, 3501)
-    gain = ks[np.argmin(np.abs(look(ks * MID_GREY * rs[1]) - target))]
+    gain = ks[np.argmin(np.abs(look(ks * MID_GREY) - target))]
     lx = np.log2(np.maximum(x, 1e-9)); lm = np.log2(MID_GREY)
     xin = np.where(x <= MID_GREY, gain * x, 2 ** (lx + np.log2(gain) * lx / lm))
     std = np.maximum.accumulate(np.round(255 * look(xin)).clip(0, 255))

@@ -3,3 +3,5 @@ build/
 research/clut/
 *.LUT
 __pycache__/
+research/.venv/
+research/.venv-spk/

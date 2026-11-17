@@ -42,11 +42,18 @@ nothing. Fit results: `research/fits/*.npz` (`M`, `curve` on the grid v = u^(1/2
 ## Colour profiles (built, not flashed, not camera-tested)
 
 ```sh
-python3 tools/m8lut.py look Kodak_Portra_160_2      # build/m8-2_014-kodak_portra_160_2.upd
-python3 tools/m8lut.py look Kodak_Kodachrome_64
-python3 tools/m8lut.py look Kodak_Kodachrome_200
-python3 research/ccd_check.py build/X.upd "research/clut/<film>.png" ...   # metrics + build/preview.png
+research/.venv/bin/python research/spectral_gen.py   # looks from Kodak datasheets -> research/clut/SFL *.npz
+python3 research/film_fit.py "research/clut/SFL Kodachrome 64.npz" "research/clut/SFL Portra 160 Endura.npz"
+python3 tools/m8lut.py look SFL_Portra_160_Endura   # build/m8-2_014-sfl_portra_160_endura.upd
+python3 tools/m8lut.py look SFL_Kodachrome_64
+python3 research/ccd_check.py build/X.upd "research/clut/<look>.npz" ...   # metrics + build/preview.png
 ```
+
+**Look source:** [Spectral Film LUT](https://github.com/JanLohse/spectral_film_lut) (MIT): digitised Kodak
+datasheets (spectral sensitivity, characteristic curves, spectral dye density) → spectral simulation of
+scene → film (→ paper). Kodachrome 64 (slide, balanced on the slide's white, viewed at D65); Portra 160
+printed on Kodak Portra Endura. Input is scene-linear light, matching the M8 pipeline's input. The old
+RawTherapee CLUTs stay for reference only (pale Kodachrome yellows).
 
 Only the **sRGB** colour space changes (matrices #10–19, curves 5–9). Adobe RGB / ECI RGB keep Leica's
 colour, so switching Colour space returns the stock look without reflashing. Saturation and Contrast
@@ -54,12 +61,27 @@ keep working.
 
 CCD (KAF-10500) compatibility:
 
-- **Matrix = M_look · Leica's stock matrix**: the CCD's own camera→sRGB conversion stays; the look sits
-  on top of it.
-- **Tone from the film's grey axis**, mid-grey at Leica's 147 (what the M8's metering is made for).
-- **Shoulder**: above mid-grey the gain rolls off to 1.0 at the CCD clip point → 255 only where the
-  sensor clips; no highlight range the CCD kept is discarded. Fully clipped highlights stay neutral.
-- No extra shadow-noise gain (the CCD is noisy at high ISO), no stronger IR magenta cast.
+- **Matrix = M_look · Leica's stock matrix**, rows summing to 1 like all 30 Leica matrices: greys stay
+  grey (the camera's AWB stays right), clipped CCD highlights stay neutral.
+- **Tone from the film's grey axis**, black-point compensated (Dmax → 0) as in ICC perceptual; mid-grey
+  at Leica's 147 (what the M8's metering is made for).
+- **Shoulder**: above mid-grey the gain rolls off to 1.0 at the CCD clip point → 255 only where it clips.
+- No extra shadow-noise gain, no stronger IR magenta cast.
+
+| Build | ΔE00 vs source | clip (cam 1,1,1) | shadow noise 1% | noise 18% | IR chroma |
+|---|---|---|---|---|---|
+| Leica stock | | 255,255,255 | 1.00 | 1.00 | 25.5 |
+| Portra 160 (Endura) | 4.3 | 255,255,255 | 0.22 | 0.76 | 12.1 |
+| Kodachrome 64 | 5.0 | 255,255,255 | 0.35 | 0.80 | 17.3 |
+
+Difference from Leica stock on a ColorChecker: median ΔE00 8.2 (Portra), 6.0 (Kodachrome), greys
+unchanged. Both are **softer** than Leica's very saturated sRGB Standard. Split comparison: `docs/compare.png`.
+
+Noise = gain relative to Leica stock. IR chroma is an **assumption** (NIR leaks into R and B more than
+G); a UV/IR filter is still recommended. 3×3 matrix limit: Kodachrome yellows/blues come out lighter
+than the simulation (film yellow 244,220,84 → M8 222,209,110).
+
+![comparison](docs/compare.png)
 
 | Build | ΔE00 vs CLUT | clip (cam 1,1,1) | shadow noise 1% | noise 18% | IR chroma |
 |---|---|---|---|---|---|
@@ -73,9 +95,6 @@ G); a UV/IR filter is still recommended. ΔE is above the fit (3.2 / 4.0) becaus
 from the CLUT in the highlights on purpose.
 
 ![preview](docs/preview.png)
-
-Note: both RawTherapee Kodachrome CLUTs render **pale yellows** (yellow 231,199,31 → 255,217,124) and
-slightly magenta mid-tones; the builds follow the CLUT. Rich Kodachrome yellows need another look source.
 
 ## Test 1: does the Blackfin use the matrices?
 
