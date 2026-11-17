@@ -39,6 +39,44 @@ Fits the RawTherapee HaldCLUTs (CC BY-SA 4.0) with the M8's model `curve(M · li
 A curve alone barely produces the looks; the matrix carries most of them. Per-channel curves add
 nothing. Fit results: `research/fits/*.npz` (`M`, `curve` on the grid v = u^(1/2.2)).
 
+## Colour profiles (built, not flashed, not camera-tested)
+
+```sh
+python3 tools/m8lut.py look Kodak_Portra_160_2      # build/m8-2_014-kodak_portra_160_2.upd
+python3 tools/m8lut.py look Kodak_Kodachrome_64
+python3 tools/m8lut.py look Kodak_Kodachrome_200
+python3 research/ccd_check.py build/X.upd "research/clut/<film>.png" ...   # metrics + build/preview.png
+```
+
+Only the **sRGB** colour space changes (matrices #10–19, curves 5–9). Adobe RGB / ECI RGB keep Leica's
+colour, so switching Colour space returns the stock look without reflashing. Saturation and Contrast
+keep working.
+
+CCD (KAF-10500) compatibility:
+
+- **Matrix = M_look · Leica's stock matrix**: the CCD's own camera→sRGB conversion stays; the look sits
+  on top of it.
+- **Tone from the film's grey axis**, mid-grey at Leica's 147 (what the M8's metering is made for).
+- **Shoulder**: above mid-grey the gain rolls off to 1.0 at the CCD clip point → 255 only where the
+  sensor clips; no highlight range the CCD kept is discarded. Fully clipped highlights stay neutral.
+- No extra shadow-noise gain (the CCD is noisy at high ISO), no stronger IR magenta cast.
+
+| Build | ΔE00 vs CLUT | clip (cam 1,1,1) | shadow noise 1% | noise 18% | IR chroma |
+|---|---|---|---|---|---|
+| Leica stock | | 255,255,255 | 1.00 | 1.00 | 25.5 |
+| Portra 160 | 3.3 | 255,255,255 | 0.70 | 0.55 | 18.2 |
+| Kodachrome 64 | 5.0 | 254,254,254 | 0.76 | 0.70 | 17.0 |
+| Kodachrome 200 | 3.7 | 254,254,254 | 0.67 | 0.81 | 17.2 |
+
+Noise = gain relative to Leica stock. IR chroma is an **assumption** (NIR leaks into R and B more than
+G); a UV/IR filter is still recommended. ΔE is above the fit (3.2 / 4.0) because the shoulder departs
+from the CLUT in the highlights on purpose.
+
+![preview](docs/preview.png)
+
+Note: both RawTherapee Kodachrome CLUTs render **pale yellows** (yellow 231,199,31 → 255,217,124) and
+slightly magenta mid-tones; the builds follow the CLUT. Rich Kodachrome yellows need another look source.
+
 ## Test 1: does the Blackfin use the matrices?
 
 ```sh
