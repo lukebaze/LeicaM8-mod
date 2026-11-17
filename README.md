@@ -34,6 +34,42 @@ Fit HaldCLUT RawTherapee (CC BY-SA 4.0) bằng mô hình của M8 `curve(M · li
 
 Kết quả fit: `research/fits/*.npz` (`M`, `curve` trên lưới v = u^(1/2.2)).
 
+## Profile màu (đã build, chưa flash, chưa thử trên máy)
+
+```sh
+python3 tools/m8lut.py look Kodak_Portra_160_2      # build/m8-2_014-kodak_portra_160_2.upd
+python3 tools/m8lut.py look Kodak_Kodachrome_64
+python3 tools/m8lut.py look Kodak_Kodachrome_200
+python3 research/ccd_check.py build/X.upd "research/clut/<film>.png" ...   # số đo + build/preview.png
+```
+
+Chỉ sửa không gian **sRGB** (ma trận #10–19, đường cong 5–9). Adobe RGB / ECI RGB giữ màu Leica gốc,
+nên đổi Color space là về màu gốc, không cần flash lại. Saturation và Contrast vẫn hoạt động.
+
+Tương thích cảm biến CCD (KAF-10500):
+
+- **Ma trận = M_look · ma trận gốc của Leica**: giữ nguyên chuyển đổi cam→sRGB riêng của CCD, look
+  chỉ chồng lên trên.
+- **Tone lấy từ trục xám của film**, mid-grey đặt đúng 147 như Leica (đo sáng của M8 tính theo mức này).
+- **Shoulder**: trên mid-grey, gain giảm dần về 1.0 tại điểm CCD clip → 255 chỉ ở chỗ cảm biến clip,
+  không bỏ vùng highlight CCD còn giữ. Highlight clip hoàn toàn vẫn trung tính.
+- Không khuếch đại noise vùng tối (CCD nhiều noise ở ISO cao), không tăng ám magenta do IR.
+
+| Build | ΔE00 vs CLUT | clip (cam 1,1,1) | noise tối 1% | noise 18% | chroma IR |
+|---|---|---|---|---|---|
+| Leica gốc | | 255,255,255 | 1.00 | 1.00 | 25.5 |
+| Portra 160 | 3.3 | 255,255,255 | 0.70 | 0.55 | 18.2 |
+| Kodachrome 64 | 5.0 | 254,254,254 | 0.76 | 0.70 | 17.0 |
+| Kodachrome 200 | 3.7 | 254,254,254 | 0.67 | 0.81 | 17.2 |
+
+Noise = độ khuếch đại so với Leica gốc. Chroma IR là **giả định** (IR lọt vào R và B nhiều hơn G); vẫn
+nên dùng filter UV/IR. ΔE cao hơn lúc fit (3.2 / 4.0) vì shoulder cố ý khác CLUT ở vùng highlight.
+
+![preview](docs/preview.png)
+
+Lưu ý: cả hai CLUT Kodachrome của RawTherapee đều làm **vàng nhạt** (vàng 231,199,31 → 255,217,124) và
+trung tông hơi magenta; build làm đúng theo CLUT. Muốn vàng đậm kiểu Kodachrome thật cần nguồn look khác.
+
 ## Thử 1: Blackfin có dùng ma trận không?
 
 ```sh
