@@ -32,6 +32,8 @@ LOOKS.update({  # extra looks for the card (PROFILES/*.LUT), same settings as th
     'SFL Portra 400 Endura': ('Kodak Portra 400', 'Kodak Portra Endura Paper', {}),
     'SFL Gold 200 Supra': ('Kodak Gold 200', 'Kodak Supra Endura Paper', {}),
     'SFL Tri-X 400 Polymax': ('Kodak Tri-X 400', 'Kodak Polymax Fine-Art Paper Grade 2', {}),
+    'SFL Pro 400H Maxima': ('Fuji Pro 400H', 'Fuji Crystal Archive Maxima', {}),
+    'SFL Ektar 100 Endura': ('Kodak Ektar 100', 'Kodak Endura Premier Paper', {}),
 })
 stocks = {s.name: s for s in FILM_STOCKS}
 

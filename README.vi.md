@@ -45,7 +45,7 @@ Thử trên một máy M8 (firmware 2.014), 2026-11-17/18.
 | JPG fine+RAW giữ qua tắt/bật máy | ✅ trên máy | patch của gasdevmco; mọi ảnh từ đó đều ra JPG + RAW |
 | `--raw-default` (mặc định JPG fine+RAW) | ✅ giả lập, ⏳ trên máy | `research/settings_emutest.py` 24/24 trên chính code cài đặt của máy |
 | Dial sau: EV, UP/DOWN → ISO | ✅ từng phần trên máy (gasdevmco), ⏳ bản này | tổ hợp bộ chọn + dial: `m8_evtest` của gasdevmco 260/0 |
-| Bộ chọn picture profile, look `.LUT` trên thẻ | ✅ bộ chọn trên máy (gasdevmco, đường cong), ⏳ màu | `BWTEST.LUT` quyết định GAMMA gửi lại có mang cả ma trận không |
+| Bộ chọn picture profile, look `.LUT` trên thẻ | ✅ bộ chọn trên máy (gasdevmco, đường cong), ⏳ màu | `TRIX400.LUT` (các hàng ma trận bằng nhau) quyết định GAMMA gửi lại có mang cả ma trận không |
 | User profile | ✅ trên máy | lưu được profile 1–3; 0 là mặc định gốc, dựng lại mỗi lần bật máy |
 
 Giới hạn đã biết: mỗi slot một ma trận 3×3 + một đường cong (vàng/xanh dương Kodachrome nhạt hơn mô
@@ -102,8 +102,9 @@ gốc, máy dựng lại mỗi lần bật.
 
 **3. Look trên thẻ** (bộ chọn picture profile): ở chế độ chụp INFO → UP → chọn look → SET → INFO.
 Look thay slot **sRGB** (Kodachrome) đến khi tắt máy; Portra, Leica và đen trắng giữ nguyên. Nạp
-`DEFAULT` để quay lại mà không cần tắt máy. Lần đầu: nạp `BWTEST` và chụp ở sRGB; tối + đen trắng = look
-trên thẻ mang cả màu, tối + còn màu = chỉ mang tone (khi đó nên dùng bản `--dial-ev`).
+`DEFAULT` để quay lại mà không cần tắt máy. Lần đầu: nạp `TRIX400` và chụp ở sRGB; JPG đen trắng = look trên
+thẻ mang cả màu (ma trận Tri-X là đơn sắc), JPG còn màu nhưng tone Tri-X = chỉ mang tone (khi đó nên dùng
+bản `--dial-ev`).
 
 **4. Kiểm tra**
 
@@ -248,10 +249,12 @@ python3 tools/m8lut.py lut --from build/m8-2_014-dng14-picker-dial-kodachrome-po
 - Mỗi `.LUT` dựng từ GAMMA **đã flash** và chỉ đổi slot sRGB, nên nạp vào không xoá Portra (Adobe) hay
   Leica/B&W (ECI). Bộ chọn chỉ kiểm kích thước + 24 byte đầu header, look không đụng tới. `DEFAULT.LUT`
   = bảng đã flash; tắt máy cũng về lại nó.
-- Bộ trên thẻ (9/10): `DEFAULT`, `BWTEST`, `PORTRA16`, `PORTRA4`, `GOLD200`, `EKTA100`, `VELVIA50`,
-  `PROVIA`, `TRIX400` (ΔE00 fit: Tri-X 1.1, Gold 4.2, Portra 400 4.3, Provia 4.8, Ektachrome 5.1, Velvia 5.8).
+- Bộ trên thẻ (đủ 10 chỗ của bộ chọn): `DEFAULT`, `PORTRA16`, `PORTRA4`, `GOLD200`, `EKTAR100`, `PRO400H`,
+  `EKTA100`, `VELVIA50`, `PROVIA`, `TRIX400` (ΔE00 fit: Tri-X 1.1, Pro 400H 3.4, Gold 4.2, Portra 400 4.3,
+  Ektar 4.7, Provia 4.8, Ektachrome 5.1, Velvia 5.8). Pro 400H in trên Fuji Crystal Archive Maxima, Ektar 100
+  trên Kodak Endura Premier.
 - Chưa chứng minh: Blackfin lấy **ma trận** từ GAMMA gửi lại (gasdevmco mới chứng minh đường cong).
-  Nạp `BWTEST.LUT`, chụp sRGB: tối + đen trắng = có; tối + còn màu = chỉ đường cong (look mất nửa màu).
+  Nạp `TRIX400.LUT`, chụp sRGB: đen trắng = có; còn màu = chỉ đường cong (look mất nửa màu).
 - File `.LUT` chứa dữ liệu Leica: tự build, không đăng công khai.
 - Đánh đổi: không còn màn INFO chỉ-Camera-stats (bộ chọn đã gồm), trang dial màu amber, look trên thẻ
   mất khi tắt máy.

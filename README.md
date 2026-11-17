@@ -45,7 +45,7 @@ Tested on one M8 (firmware 2.014), 2026-11-17/18.
 | JPG fine+RAW kept through power cycles | ✅ camera | gasdevmco patch; every shot since gave JPG + RAW |
 | `--raw-default` (factory default JPG fine+RAW) | ✅ emulator, ⏳ camera | `research/settings_emutest.py` 24/24 on the camera's own settings code |
 | Rear dial: EV, UP/DOWN → ISO | ✅ pieces on camera (gasdevmco), ⏳ this build | picker + dial combination: gasdevmco `m8_evtest` 260/0 |
-| Picture-profile picker, `.LUT` card looks | ✅ picker on camera (gasdevmco, curves), ⏳ colour | `BWTEST.LUT` decides whether a re-sent GAMMA also carries the matrices |
+| Picture-profile picker, `.LUT` card looks | ✅ picker on camera (gasdevmco, curves), ⏳ colour | `TRIX400.LUT` (all-equal matrix rows) decides whether a re-sent GAMMA also carries the matrices |
 | User profiles | ✅ camera | profiles 1–3 saveable; 0 is the factory default, rebuilt at every power-on |
 
 Known limits: one 3×3 matrix + one curve per slot (Kodachrome yellows/blues lighter than the
@@ -104,9 +104,9 @@ the factory default, rebuilt at every power-on.
 
 **3. Card looks** (picture-profile picker): in shooting mode INFO → UP → choose a look → SET → INFO.
 The look replaces the **sRGB** slot (Kodachrome) until power-off; Portra, Leica and B&W stay. Load
-`DEFAULT` to go back without switching off. First time: load `BWTEST` and shoot in sRGB; dark + black &
-white means card looks carry their colour, dark + colour means only their tone (then prefer the
-`--dial-ev` build).
+`DEFAULT` to go back without switching off. First time: load `TRIX400` and shoot in sRGB; a black &
+white JPG means card looks carry their colour (the Tri-X matrix is monochrome), a colour JPG with
+Tri-X tone means only their tone (then prefer the `--dial-ev` build).
 
 **4. Check**
 
@@ -255,11 +255,12 @@ python3 tools/m8lut.py lut --from build/m8-2_014-dng14-picker-dial-kodachrome-po
 - Every `.LUT` starts from the **flashed** GAMMA and changes only the sRGB slot, so loading one never
   wipes Portra (Adobe) or Leica/B&W (ECI). The picker checks only size + the first 24 header bytes,
   which the looks never touch. `DEFAULT.LUT` = the flashed table; power-off also restores it.
-- Card set (9 of the picker's 10): `DEFAULT`, `BWTEST`, `PORTRA16`, `PORTRA4`, `GOLD200`, `EKTA100`,
-  `VELVIA50`, `PROVIA`, `TRIX400` (fit ΔE00: Tri-X 1.1, Gold 4.2, Portra 400 4.3, Provia 4.8,
-  Ektachrome 5.1, Velvia 5.8).
+- Card set (all 10 of the picker's slots): `DEFAULT`, `PORTRA16`, `PORTRA4`, `GOLD200`, `EKTAR100`,
+  `PRO400H`, `EKTA100`, `VELVIA50`, `PROVIA`, `TRIX400` (fit ΔE00: Tri-X 1.1, Pro 400H 3.4, Gold 4.2,
+  Portra 400 4.3, Ektar 4.7, Provia 4.8, Ektachrome 5.1, Velvia 5.8). Pro 400H prints on Fuji Crystal
+  Archive Maxima, Ektar 100 on Kodak Endura Premier.
 - Unproven: that the Blackfin takes **matrices** from a re-sent GAMMA (gasdevmco proved curves only).
-  Load `BWTEST.LUT`, shoot sRGB: dark + B&W = yes; dark + colour = curves only (looks lose their colour half).
+  Load `TRIX400.LUT`, shoot sRGB: black & white = yes; colour = curves only (looks lose their colour half).
 - `.LUT` files contain Leica data: build them yourself, never publish them.
 - Costs: no INFO Camera-stats-only screen (the picker includes it), dial pages amber, card looks
   last until power-off.
