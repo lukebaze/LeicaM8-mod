@@ -26,8 +26,11 @@ BASES = {  # gasdevmco/leica-m8-firmware v0.10.0 m8patch.py builds (README "Buil
     '89fbcc00674f69524b9460fa0e47659c4ff5f422767d3f9d1f4dff3436368f21': '14-bit DNG + dial EV/ISO',
     '4cefacf137a8013c69d0400a1393d3667f369fdfa4e601ecb38dd3a55286376b': '14-bit DNG + INFO + dial EV/ISO',
     # v0.7.0 `m8_dngpatch.py dng --meta --profiles --dial-ev`: withdrawn from m8patch.py, but flashed and
-    # camera-tested as this exact file (2026-11-05) and the author's fallback build
-    '4359b04b41dd81761730e79fde3b46a09044e908c55cdc56cd8d8add3288e905': '14-bit DNG + picture-profile picker + dial EV/ISO (amber)',
+    # camera-tested as this exact file (2026-11-05) and the author's fallback build. Dial = EV only.
+    '4359b04b41dd81761730e79fde3b46a09044e908c55cdc56cd8d8add3288e905': '14-bit DNG + picture-profile picker + dial EV (amber, no ISO)',
+    # `m8_dngpatch.py dng --meta --profiles --dial-ev --iso`: never published or flashed as a file; made of
+    # camera-tested pieces (picker as in 4359b04b, dial EV+ISO amber as in 796ecbc6), regions disjoint
+    'cf965505725f1f82077772bcd09d23c517d0293cfdd64290cae2e4da003986b1': '14-bit DNG + picture-profile picker + dial EV/ISO (amber; pieces)',
 }
 MAT_OFF, N_MAT, CURVE_OFF, CURVE_LEN = 0x1D0, 30, 0x410, 2048
 SPACES = {'adobe': 0, 'srgb': 1, 'eci': 2}

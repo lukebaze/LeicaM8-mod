@@ -36,15 +36,15 @@ Hai phần không chồng nhau; bootloader và updater thẻ SD giữ nguyên g�
 
 ## Cài đặt trên máy
 
-Bản khuyên dùng: `--base` file `dng --meta --profiles --dial-ev` của gasdevmco (`4359b04b…`),
+Bản khuyên dùng: `--base` file `dng --meta --profiles --dial-ev --iso` của gasdevmco (`cf965505…`; bộ chọn + dial EV/ISO, từng phần gasdevmco đã thử trên máy, tổ hợp chạy giả lập: m8_evtest 260/0),
 `--srgb SFL_Kodachrome_64 --adobe SFL_Portra_160_Endura --bw eci --raw-default`, cộng các look trên thẻ
 (`build/PROFILES`, xem *Thêm look từ thẻ*). Các slot màu và DNG 14-bit đã kiểm trên máy (2026-11-17, trên
 base `--dial-ev`; phần PXA của base này gasdevmco đã thử đúng file đó trên máy).
 
 ```sh
-python3 tools/m8lut.py build --base firmware/dng/m8-2_014-dng-profiles-dial.upd \
+python3 tools/m8lut.py build --base firmware/dng/m8-2_014-dng-profiles-dial-iso.upd \
     --srgb SFL_Kodachrome_64 --adobe SFL_Portra_160_Endura --bw eci --raw-default \
-    --out m8-2_014-dng14-picker-dial-kodachrome-portra-bw-raw.upd
+    --out m8-2_014-dng14-picker-dialiso-kodachrome-portra-bw-raw.upd
 ```
 
 **1. Flash** (theo quy trình Leica)
@@ -215,7 +215,7 @@ INFO → UP → chọn → SET. Build `4359b04b…` (DNG + meta + bộ chọn + 
 file đó trên máy, nên được nhận làm base.
 
 ```sh
-python3 tools/m8lut.py build --base firmware/dng/m8-2_014-dng-profiles-dial.upd \
+python3 tools/m8lut.py build --base firmware/dng/m8-2_014-dng-profiles-dial-iso.upd \
     --srgb SFL_Kodachrome_64 --adobe SFL_Portra_160_Endura --bw eci \
     --out m8-2_014-dng14-picker-dial-kodachrome-portra-bw.upd
 python3 tools/m8lut.py lut --from build/m8-2_014-dng14-picker-dial-kodachrome-portra-bw.upd \

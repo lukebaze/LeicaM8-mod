@@ -36,16 +36,16 @@ only `PXA`. The two never overlap; the bootloader and SD-card updater stay stock
 
 ## Setup on the camera
 
-Recommended build: `--base` gasdevmco's `dng --meta --profiles --dial-ev` file (`4359b04b…`),
+Recommended build: `--base` gasdevmco's `dng --meta --profiles --dial-ev --iso` file (`cf965505…`; picker + dial EV/ISO, all pieces camera-tested by gasdevmco, the combination emulator-tested: m8_evtest 260/0),
 `--srgb SFL_Kodachrome_64 --adobe SFL_Portra_160_Endura --bw eci --raw-default`, plus the card looks
 (`build/PROFILES`, see *More looks from the card*). The colour slots and the 14-bit DNG are
 camera-checked (2026-11-17, on the `--dial-ev` base; the PXA pieces of this base were camera-tested
 by gasdevmco as this exact file).
 
 ```sh
-python3 tools/m8lut.py build --base firmware/dng/m8-2_014-dng-profiles-dial.upd \
+python3 tools/m8lut.py build --base firmware/dng/m8-2_014-dng-profiles-dial-iso.upd \
     --srgb SFL_Kodachrome_64 --adobe SFL_Portra_160_Endura --bw eci --raw-default \
-    --out m8-2_014-dng14-picker-dial-kodachrome-portra-bw-raw.upd
+    --out m8-2_014-dng14-picker-dialiso-kodachrome-portra-bw-raw.upd
 ```
 
 **1. Flash** (Leica's procedure)
@@ -221,7 +221,7 @@ power-off: INFO → UP → choose → SET. Its build `4359b04b…` (DNG + meta +
 flashed and camera-tested as that exact file, so it is an accepted base here.
 
 ```sh
-python3 tools/m8lut.py build --base firmware/dng/m8-2_014-dng-profiles-dial.upd \
+python3 tools/m8lut.py build --base firmware/dng/m8-2_014-dng-profiles-dial-iso.upd \
     --srgb SFL_Kodachrome_64 --adobe SFL_Portra_160_Endura --bw eci \
     --out m8-2_014-dng14-picker-dial-kodachrome-portra-bw.upd
 python3 tools/m8lut.py lut --from build/m8-2_014-dng14-picker-dial-kodachrome-portra-bw.upd \
