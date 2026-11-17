@@ -21,13 +21,37 @@
 | Adobe RGB | Portra 160 printed on Kodak Portra Endura |
 | ECI RGB | Leica stock |
 
-This project only edits `LUTS/GAMMA` (colour matrices + tone curves). The optional base, the 14-bit DNG
-build of [gasdevmco/leica-m8-firmware](https://github.com/gasdevmco/leica-m8-firmware) (MIT), edits
-only `PXA`. The two never overlap; the bootloader and SD-card updater stay stock.
+This project edits `LUTS/GAMMA` (colour matrices + tone curves) and, with `--raw-default`, one
+instruction of the factory-settings template. The optional base, a 14-bit DNG build of
+[gasdevmco/leica-m8-firmware](https://github.com/gasdevmco/leica-m8-firmware) (MIT), edits only `PXA`
+code. They never overlap; the bootloader and SD-card updater stay stock.
 
 > [!WARNING]
-> The colour matrices are proven on a camera (`bw-test`, 2026-11-17, below); the film-look builds
-> themselves are not yet flashed. Keep a card with the stock `m8-2_014.upd` to roll back.
+> Experimental firmware on a 20-year-old camera, at your own risk. Keep a card with the stock
+> `m8-2_014.upd` to roll back.
+
+## What's working
+
+Tested on one M8 (firmware 2.014), 2026-11-17/18.
+
+| Feature | Status | Evidence |
+|---|---|---|
+| GAMMA colour matrices drive the JPG | ✅ camera | `bw-test`: sRGB JPG exactly monochrome (R = G = B in every pixel), Adobe RGB shot of the same scene in colour |
+| Kodachrome 64 (Colour space sRGB) | ✅ camera | JPG predicted from its own 14-bit RAW: flashed table ΔE00 3.5, Leica's table 6.9 |
+| Portra 160 on Endura (Adobe RGB) | ✅ camera | prediction 4.4 levels with the flashed table vs 15.7 with Leica's; Adobe RGB (1998) ICC embedded |
+| Leica stock (ECI RGB) | ✅ unchanged | ECI slot byte-identical to stock; ECI-RGB.icc embedded |
+| Black & white (ECI, Saturation Low) | ⏳ to shoot | same matrix mechanism as `bw-test` |
+| 14-bit DNG (`.RAW`, 21,049,052 bytes) | ✅ camera | 5/5 pairs: AsShotNeutral == JPG, 18/18 MakerNote tags == JPG (gasdevmco `m8_metacheck`) |
+| JPG fine+RAW kept through power cycles | ✅ camera | gasdevmco patch; every shot since gave JPG + RAW |
+| `--raw-default` (factory default JPG fine+RAW) | ✅ emulator, ⏳ camera | `research/settings_emutest.py` 24/24 on the camera's own settings code |
+| Rear dial: EV, UP/DOWN → ISO | ✅ pieces on camera (gasdevmco), ⏳ this build | picker + dial combination: gasdevmco `m8_evtest` 260/0 |
+| Picture-profile picker, `.LUT` card looks | ✅ picker on camera (gasdevmco, curves), ⏳ colour | `BWTEST.LUT` decides whether a re-sent GAMMA also carries the matrices |
+| User profiles | ✅ camera | profiles 1–3 saveable; 0 is the factory default, rebuilt at every power-on |
+
+Known limits: one 3×3 matrix + one curve per slot (Kodachrome yellows/blues lighter than the
+simulation); looks are in the JPG only; card looks last until power-off; Adobe/ECI JPGs need
+colour-managed viewing.
+
 
 **Never commit Leica firmware.** `firmware/stock/m8-2_014.upd` (SHA-256 `99f52548…09ed0`, source:
 `fichiers.touslesdrivers.com/38007/m8-2_014.zip`) and `build/` are git-ignored.

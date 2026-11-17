@@ -21,13 +21,36 @@
 | Adobe RGB | Portra 160 in trên Kodak Portra Endura |
 | ECI RGB | Leica gốc |
 
-Project này chỉ sửa `LUTS/GAMMA` (ma trận màu + đường cong tone). Base tuỳ chọn, bản DNG 14-bit của
-[gasdevmco/leica-m8-firmware](https://github.com/gasdevmco/leica-m8-firmware) (MIT), chỉ sửa `PXA`.
+Project này sửa `LUTS/GAMMA` (ma trận màu + đường cong tone) và, với `--raw-default`, một lệnh trong mẫu
+cài đặt mặc định. Base tuỳ chọn, bản DNG 14-bit của
+[gasdevmco/leica-m8-firmware](https://github.com/gasdevmco/leica-m8-firmware) (MIT), chỉ sửa code `PXA`.
 Hai phần không chồng nhau; bootloader và updater thẻ SD giữ nguyên gốc.
 
 > [!WARNING]
-> Ma trận màu đã được chứng minh trên máy thật (`bw-test`, 2026-11-17, bên dưới); bản look film thì
-> chưa flash. Giữ một thẻ chứa `m8-2_014.upd` gốc để rollback.
+> Firmware thử nghiệm trên máy 20 năm tuổi, tự chịu rủi ro. Giữ một thẻ chứa `m8-2_014.upd` gốc để
+> rollback.
+
+## Đang chạy được gì
+
+Thử trên một máy M8 (firmware 2.014), 2026-11-17/18.
+
+| Tính năng | Trạng thái | Bằng chứng |
+|---|---|---|
+| Ma trận màu GAMMA điều khiển JPG | ✅ trên máy | `bw-test`: JPG sRGB đen trắng tuyệt đối (R = G = B mọi pixel), cùng cảnh ở Adobe RGB vẫn có màu |
+| Kodachrome 64 (Color space sRGB) | ✅ trên máy | dựng lại JPG từ RAW 14-bit của chính nó: bảng đã flash ΔE00 3.5, bảng Leica 6.9 |
+| Portra 160 in Endura (Adobe RGB) | ✅ trên máy | lệch 4,4 mức với bảng đã flash so với 15,7 với bảng Leica; có nhúng ICC Adobe RGB (1998) |
+| Leica gốc (ECI RGB) | ✅ không đổi | slot ECI giống gốc từng byte; có nhúng ECI-RGB.icc |
+| Đen trắng (ECI, Saturation Low) | ⏳ chưa chụp | cùng cơ chế ma trận với `bw-test` |
+| DNG 14-bit (`.RAW`, 21.049.052 byte) | ✅ trên máy | 5/5 cặp: AsShotNeutral == JPG, 18/18 thẻ MakerNote == JPG (`m8_metacheck` của gasdevmco) |
+| JPG fine+RAW giữ qua tắt/bật máy | ✅ trên máy | patch của gasdevmco; mọi ảnh từ đó đều ra JPG + RAW |
+| `--raw-default` (mặc định JPG fine+RAW) | ✅ giả lập, ⏳ trên máy | `research/settings_emutest.py` 24/24 trên chính code cài đặt của máy |
+| Dial sau: EV, UP/DOWN → ISO | ✅ từng phần trên máy (gasdevmco), ⏳ bản này | tổ hợp bộ chọn + dial: `m8_evtest` của gasdevmco 260/0 |
+| Bộ chọn picture profile, look `.LUT` trên thẻ | ✅ bộ chọn trên máy (gasdevmco, đường cong), ⏳ màu | `BWTEST.LUT` quyết định GAMMA gửi lại có mang cả ma trận không |
+| User profile | ✅ trên máy | lưu được profile 1–3; 0 là mặc định gốc, dựng lại mỗi lần bật máy |
+
+Giới hạn đã biết: mỗi slot một ma trận 3×3 + một đường cong (vàng/xanh dương Kodachrome nhạt hơn mô
+phỏng); look chỉ có trong JPG; look trên thẻ mất khi tắt máy; JPG Adobe/ECI cần app có quản lý màu.
+
 
 **Không commit firmware Leica.** `firmware/stock/m8-2_014.upd` (SHA-256 `99f52548…09ed0`, nguồn:
 `fichiers.touslesdrivers.com/38007/m8-2_014.zip`) và `build/` bị gitignore.
