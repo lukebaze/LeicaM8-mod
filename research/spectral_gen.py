@@ -24,6 +24,15 @@ LOOKS = {  # name: (camera stock, print stock or None, extra film_conversion arg
     # negative printed on Kodak's own Portra Endura paper (print path does its own balance)
     'SFL Portra 160 Endura': ('Kodak Portra 160', 'Kodak Portra Endura Paper', {}),
 }
+SLIDE = dict(white_balance=2, projector_kelvin=6500)
+LOOKS.update({  # extra looks for the card (PROFILES/*.LUT), same settings as their families above
+    'SFL Ektachrome 100D': ('Kodak Ektachrome 100D', None, SLIDE),
+    'SFL Velvia 50': ('Fuji Velvia 50', None, SLIDE),
+    'SFL Provia 100F': ('Fuji Provia 100F', None, SLIDE),
+    'SFL Portra 400 Endura': ('Kodak Portra 400', 'Kodak Portra Endura Paper', {}),
+    'SFL Gold 200 Supra': ('Kodak Gold 200', 'Kodak Supra Endura Paper', {}),
+    'SFL Tri-X 400 Polymax': ('Kodak Tri-X 400', 'Kodak Polymax Fine-Art Paper Grade 2', {}),
+})
 stocks = {s.name: s for s in FILM_STOCKS}
 
 def film(name, negative=None):

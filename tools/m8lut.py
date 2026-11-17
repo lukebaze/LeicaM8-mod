@@ -7,10 +7,13 @@ Space 0 = Adobe RGB, 1 = sRGB, 2 = ECI RGB (the Colour space menu). JPG = curve(
 
   python3 tools/m8lut.py dump                     # print all 30 matrices
   python3 tools/m8lut.py bw-test [--all]          # monochrome matrices + darker control curve (see README Test 1)
-  python3 tools/m8lut.py build [--base FILE] [--srgb LOOK] [--adobe LOOK] [--eci LOOK] [--out NAME]
+  python3 tools/m8lut.py build [--base FILE] [--srgb LOOK] [--adobe LOOK] [--eci LOOK] [--bw SPACE] [--out NAME]
       LOOK = research/fits/fit_<LOOK>.npz, e.g. SFL_Portra_160_Endura. A space without a look keeps Leica's.
+      --bw SPACE: that space's Saturation Low becomes black & white (Leica tone).
       --base: start from a gasdevmco/leica-m8-firmware 2.014 build (14-bit DNG, PXA only) instead of stock;
               accepted only if its SHA-256 is one of that project's published builds and GAMMA is stock.
+  python3 tools/m8lut.py lut --from FLASHED.upd --name NAME [--srgb LOOK] ... [--bw-test]
+      -> build/PROFILES/NAME.LUT for the picture-profile picker (base 4359b04b), see `lut` below.
 """
 import hashlib, os, struct, sys
 
@@ -22,6 +25,9 @@ BASES = {  # gasdevmco/leica-m8-firmware v0.10.0 m8patch.py builds (README "Buil
     '624448c6190de500028e4c583993cf9047c791504e5f9bc4c45a31b79af42af8': '14-bit DNG + INFO',
     '89fbcc00674f69524b9460fa0e47659c4ff5f422767d3f9d1f4dff3436368f21': '14-bit DNG + dial EV/ISO',
     '4cefacf137a8013c69d0400a1393d3667f369fdfa4e601ecb38dd3a55286376b': '14-bit DNG + INFO + dial EV/ISO',
+    # v0.7.0 `m8_dngpatch.py dng --meta --profiles --dial-ev`: withdrawn from m8patch.py, but flashed and
+    # camera-tested as this exact file (2026-11-05) and the author's fallback build
+    '4359b04b41dd81761730e79fde3b46a09044e908c55cdc56cd8d8add3288e905': '14-bit DNG + picture-profile picker + dial EV/ISO (amber)',
 }
 MAT_OFF, N_MAT, CURVE_OFF, CURVE_LEN = 0x1D0, 30, 0x410, 2048
 SPACES = {'adobe': 0, 'srgb': 1, 'eci': 2}
@@ -153,13 +159,34 @@ def build_look(d, g, fit, space=1):
     return patches, gain
 
 
-def main():
+def gamma_patches(d, g, looks, bw=None, say=print):
+    """{absolute offset: bytes} for looks {space: LOOK} and an optional B&W Saturation Low in space `bw`.
+    d must hold Leica's stock GAMMA: looks are composed on Leica's own matrices and curves."""
     import numpy as np
+    patches = {}
+    for s, name in looks.items():
+        p, gain = build_look(d, g, np.load(os.path.join(ROOT, 'research', 'fits', f'fit_{name}.npz')), SPACES[s])
+        patches.update(p)
+        say(f'{s:5s} <- {name}  (exposure gain {gain:.3f}, {np.log2(gain):+.2f} EV below mid-grey)')
+    if bw:
+        # Saturation Low of that space -> monochrome: each row = the space's luminance of Leica's own
+        # rendering (Y row of the space's RGB->XYZ, applied after its stock matrix), so tone and white
+        # stay Leica's and only colour goes. The space's other saturation steps are untouched.
+        sp = SPACES[bw]; T, _ = space_tools(sp)
+        yw = np.array([0.2126, 0.7152, 0.0722]) @ np.linalg.inv(T)      # luminance in that space's RGB
+        for i in (10 * sp, 10 * sp + 1):
+            patches[g + MAT_OFF + 18 * i] = q13([(yw @ np.array(matrix(d, g, i))).tolist()] * 3)
+        say(f'{bw:5s} Saturation Low <- black & white')
+    return patches
+
+
+def main():
     a = sys.argv[1:]
     cmd = a[0] if a else 'dump'
     opt = lambda k: a[a.index(k) + 1] if k in a else None
     base = opt('--base') or STOCK
     d, g = load(base)
+    looks = {s: opt('--' + s) for s in SPACES if opt('--' + s)}
     if cmd == 'dump':
         for i in range(N_MAT):
             print(f'{i:2d} file 0x{g + MAT_OFF + 18 * i:05X}', ' | '.join(' '.join(f'{v:6.3f}' for v in r) for r in matrix(d, g, i)))
@@ -173,17 +200,34 @@ def main():
         p.update({g + CURVE_OFF + CURVE_LEN * k: bytes(round(v * 0.6) for v in curve(d, g, k)) for k in curves})
         write(d, p, f'm8-2_014-bwtest{"-all" if al else ""}.upd', base)
     elif cmd == 'build':
-        looks = {s: opt('--' + s) for s in SPACES if opt('--' + s)}
-        if not looks:
+        if not looks and not opt('--bw'):
             sys.exit(__doc__)
         print(f'base: {BASES.get(hashlib.sha256(open(base, "rb").read()).hexdigest(), "Leica stock 2.014")}')
-        patches = {}
-        for s, name in looks.items():
-            p, gain = build_look(d, g, np.load(os.path.join(ROOT, 'research', 'fits', f'fit_{name}.npz')), SPACES[s])
-            patches.update(p)
-            print(f'{s:5s} <- {name}  (exposure gain {gain:.3f}, {np.log2(gain):+.2f} EV below mid-grey)')
+        patches = gamma_patches(d, g, looks, opt('--bw'))
         dng = '-dng' if base != STOCK else ''
         write(d, patches, opt('--out') or f'm8-2_014{dng}-' + '-'.join(f'{s}_{n.lower()}' for s, n in looks.items()) + '.upd', base)
+    elif cmd == 'lut':
+        # A card file for gasdevmco's picture-profile picker (base 4359b04b): the picker sends a whole
+        # 31,760-byte GAMMA to the Blackfin until power-off, so every .LUT starts from the GAMMA of the
+        # firmware actually flashed (--from) and changes only the spaces named here; loading one never
+        # wipes the flashed looks of the other spaces. The picker checks only size + the first 24 header
+        # bytes, which looks never touch. Contains Leica data: keep the files private.
+        name, src = opt('--name'), opt('--from')
+        if not (name and src) or not (1 <= len(name) <= 8 and name.isalnum()):
+            sys.exit('lut --from FLASHED.upd --name NAME(1-8 letters/digits) [--srgb|--adobe|--eci LOOK] [--bw SPACE] [--bw-test]')
+        f, fg = load(src, False)
+        assert f[fg:fg + 24] == d[g:g + 24], 'source GAMMA header is not stock'
+        lut = bytearray(f[fg:fg + 31760])
+        patches = gamma_patches(d, g, looks, opt('--bw'))
+        if '--bw-test' in a:      # the bw-test changes, to prove the Blackfin takes matrices from a re-sent GAMMA
+            patches.update({g + MAT_OFF + 18 * s: q13([[0.299, 0.587, 0.114]] * 3) for s in (14, 15)})
+            patches[g + CURVE_OFF + CURVE_LEN * 7] = bytes(round(v * 0.6) for v in curve(d, g, 7))
+        for o, b in patches.items():
+            lut[o - g:o - g + len(b)] = b
+        out = os.path.join(ROOT, 'build', 'PROFILES', name.upper() + '.LUT')
+        os.makedirs(os.path.dirname(out), exist_ok=True)
+        open(out, 'wb').write(lut)
+        print(f'{out}  ({sum(x != y for x, y in zip(lut, f[fg:fg + 31760]))} bytes differ from {os.path.basename(src)})')
     else:
         sys.exit(__doc__)
 
