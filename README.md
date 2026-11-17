@@ -142,6 +142,33 @@ than the simulation (film yellow 244,220,84 → M8 222,209,110).
 Images: `python3 docs/make_images.py` renders them from the built `.upd` (matrices + curves read back
 from the file); nothing is painted by hand.
 
+## More looks from the card (picture-profile picker)
+
+gasdevmco's picker (v0.7.0 `--profiles`, withdrawn from `m8patch.py` because the author "doesn't like
+how it works", not for a fault) loads a whole 31,760-byte `GAMMA` from `\PROFILES\*.LUT` until
+power-off: INFO → UP → choose → SET. Its build `4359b04b…` (DNG + meta + picker + dial, amber) was
+flashed and camera-tested as that exact file, so it is an accepted base here.
+
+```sh
+python3 tools/m8lut.py build --base firmware/dng/m8-2_014-dng-profiles-dial.upd \
+    --srgb SFL_Kodachrome_64 --adobe SFL_Portra_160_Endura --bw eci \
+    --out m8-2_014-dng14-picker-dial-kodachrome-portra-bw.upd
+python3 tools/m8lut.py lut --from build/m8-2_014-dng14-picker-dial-kodachrome-portra-bw.upd \
+    --name VELVIA50 --srgb SFL_Velvia_50          # -> build/PROFILES/VELVIA50.LUT
+```
+
+- Every `.LUT` starts from the **flashed** GAMMA and changes only the sRGB slot, so loading one never
+  wipes Portra (Adobe) or Leica/B&W (ECI). The picker checks only size + the first 24 header bytes,
+  which the looks never touch. `DEFAULT.LUT` = the flashed table; power-off also restores it.
+- Card set (9 of the picker's 10): `DEFAULT`, `BWTEST`, `PORTRA16`, `PORTRA4`, `GOLD200`, `EKTA100`,
+  `VELVIA50`, `PROVIA`, `TRIX400` (fit ΔE00: Tri-X 1.1, Gold 4.2, Portra 400 4.3, Provia 4.8,
+  Ektachrome 5.1, Velvia 5.8).
+- Unproven: that the Blackfin takes **matrices** from a re-sent GAMMA (gasdevmco proved curves only).
+  Load `BWTEST.LUT`, shoot sRGB: dark + B&W = yes; dark + colour = curves only (looks lose their colour half).
+- `.LUT` files contain Leica data: build them yourself, never publish them.
+- Costs: no INFO Camera-stats-only screen (the picker includes it), dial pages amber, card looks
+  last until power-off.
+
 ## Test 1: does the Blackfin use the matrices?
 
 ```sh

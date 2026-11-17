@@ -138,6 +138,32 @@ nên dùng filter UV/IR. Giới hạn của ma trận 3×3: vàng/xanh dương K
 Ảnh: `python3 docs/make_images.py` render từ chính file `.upd` đã build (đọc lại ma trận + đường cong
 trong file); không vẽ tay.
 
+## Thêm look từ thẻ (bộ chọn picture profile)
+
+Bộ chọn của gasdevmco (v0.7.0 `--profiles`, bị rút khỏi `m8patch.py` vì tác giả "không thích cách nó
+chạy", không phải vì lỗi) nạp nguyên bảng `GAMMA` 31.760 byte từ `\PROFILES\*.LUT` đến khi tắt máy:
+INFO → UP → chọn → SET. Build `4359b04b…` (DNG + meta + bộ chọn + dial, màu amber) đã flash và thử đúng
+file đó trên máy, nên được nhận làm base.
+
+```sh
+python3 tools/m8lut.py build --base firmware/dng/m8-2_014-dng-profiles-dial.upd \
+    --srgb SFL_Kodachrome_64 --adobe SFL_Portra_160_Endura --bw eci \
+    --out m8-2_014-dng14-picker-dial-kodachrome-portra-bw.upd
+python3 tools/m8lut.py lut --from build/m8-2_014-dng14-picker-dial-kodachrome-portra-bw.upd \
+    --name VELVIA50 --srgb SFL_Velvia_50          # -> build/PROFILES/VELVIA50.LUT
+```
+
+- Mỗi `.LUT` dựng từ GAMMA **đã flash** và chỉ đổi slot sRGB, nên nạp vào không xoá Portra (Adobe) hay
+  Leica/B&W (ECI). Bộ chọn chỉ kiểm kích thước + 24 byte đầu header, look không đụng tới. `DEFAULT.LUT`
+  = bảng đã flash; tắt máy cũng về lại nó.
+- Bộ trên thẻ (9/10): `DEFAULT`, `BWTEST`, `PORTRA16`, `PORTRA4`, `GOLD200`, `EKTA100`, `VELVIA50`,
+  `PROVIA`, `TRIX400` (ΔE00 fit: Tri-X 1.1, Gold 4.2, Portra 400 4.3, Provia 4.8, Ektachrome 5.1, Velvia 5.8).
+- Chưa chứng minh: Blackfin lấy **ma trận** từ GAMMA gửi lại (gasdevmco mới chứng minh đường cong).
+  Nạp `BWTEST.LUT`, chụp sRGB: tối + đen trắng = có; tối + còn màu = chỉ đường cong (look mất nửa màu).
+- File `.LUT` chứa dữ liệu Leica: tự build, không đăng công khai.
+- Đánh đổi: không còn màn INFO chỉ-Camera-stats (bộ chọn đã gồm), trang dial màu amber, look trên thẻ
+  mất khi tắt máy.
+
 ## Thử 1: Blackfin có dùng ma trận không?
 
 ```sh
