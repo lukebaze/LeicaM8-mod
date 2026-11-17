@@ -1,121 +1,127 @@
 # LeicaM8
 
-[English](README.en.md)
+[Tiếng Việt](README.vi.md)
 
-Màu JPG tuỳ biến (Portra, Kodachrome…) cho Leica M8, firmware 2.014, bằng cách sửa `LUTS/GAMMA`
-(đường cong tone + ma trận màu). Không đụng `PXA`, nên không chạm bootloader/updater.
+Custom JPG colour (Portra, Kodachrome…) for the Leica M8, firmware 2.014, by editing `LUTS/GAMMA`
+(tone curves + colour matrices). `PXA` is never touched, so the bootloader and the SD-card updater
+stay stock.
 
-Dựa trên [gasdevmco/leica-m8-firmware](https://github.com/gasdevmco/leica-m8-firmware) (MIT):
-định dạng `.upd`, đường cong GAMMA đã được chứng minh trên máy thật.
+Builds on [gasdevmco/leica-m8-firmware](https://github.com/gasdevmco/leica-m8-firmware) (MIT):
+the `.upd` format, and GAMMA tone curves proven on a camera.
 
-**Không commit firmware Leica.** `firmware/stock/m8-2_014.upd` (SHA-256 `99f52548…09ed0`, nguồn:
-`fichiers.touslesdrivers.com/38007/m8-2_014.zip`) và `build/` bị gitignore.
+**Never commit Leica firmware.** `firmware/stock/m8-2_014.upd` (SHA-256 `99f52548…09ed0`, source:
+`fichiers.touslesdrivers.com/38007/m8-2_014.zip`) and `build/` are git-ignored.
 
-## Ma trận màu (GAMMA + 0x1D0) — tĩnh, chưa thử trên máy
+## Colour matrices (GAMMA + 0x1D0): static analysis, not yet camera-tested
 
-- 30 ma trận 3×3 int16 Q13 (8192 = 1.0); mọi hàng cộng = 1.0 → ma trận sau WB. Thêm 2 int16 cuối
-  (`1742, 5858`) chưa rõ.
-- Chỉ số = 10·không gian màu + 2·bão hoà + biến thể. Không gian 1 = sRGB (định thức lớn nhất; 0/2 đoán
-  Adobe/ECI theo thứ tự hàng đường cong). Bão hoà 0..4 = Low..High (định thức tăng đơn điệu).
-- Biến thể B: ở mức Standard đúng bằng biến thể A với cột G và B của **hàng đỏ** đổi chỗ (#14/#15); các mức
-  khác lệch thêm. Ý nghĩa chưa rõ, nên build biến đổi từng ma trận riêng, không giả định quan hệ A/B.
-- #14 (sRGB Standard) gần nhất với ma trận cam→sRGB tính từ hệ số M8 của dcraw/Adobe.
+- 30 3×3 matrices, int16 Q13 (8192 = 1.0); every row sums to 1.0, i.e. post-white-balance
+  matrices. Two trailing int16 (`1742, 5858`) of unknown purpose.
+- Index = 10·colour space + 2·saturation + variant. Space 1 = sRGB (largest determinants; 0/2 assumed
+  Adobe/ECI, matching the tone-curve row order). Saturation 0..4 = Low..High (determinant rises
+  monotonically).
+- Variant B: at Standard it is exactly variant A with the G and B coefficients of the **red row** swapped
+  (#14/#15); the other steps differ further. Meaning unknown, so builds transform every matrix on its
+  own and assume nothing about A/B.
+- #14 (sRGB Standard) is the closest to the camera→sRGB matrix derived from dcraw/Adobe's M8
+  coefficients.
 
-## Nghiên cứu look (`research/film_fit.py`)
+## Look research (`research/film_fit.py`)
 
-Fit HaldCLUT RawTherapee (CC BY-SA 4.0) bằng mô hình của M8 `curve(M · linear)`. Trung vị ΔE00:
+Fits the RawTherapee HaldCLUTs (CC BY-SA 4.0) with the M8's model `curve(M · linear)`. Median ΔE00:
 
-| Film | chỉ curve | curve + ma trận |
+| Film | curve only | curve + matrix |
 |---|---|---|
 | Portra 160 | 5.6 | 3.2 |
 | Portra 400 NC | 7.0 | 3.8 |
 | Kodachrome 64 | 9.2 | 4.0 |
 | Kodachrome 200 | 8.3 | 2.6 |
-| Kodachrome 25 | 9.5 | 7.7 (bỏ) |
+| Kodachrome 25 | 9.5 | 7.7 (dropped) |
 
-Kết quả fit: `research/fits/*.npz` (`M`, `curve` trên lưới v = u^(1/2.2)).
+A curve alone barely produces the looks; the matrix carries most of them. Per-channel curves add
+nothing. Fit results: `research/fits/*.npz` (`M`, `curve` on the grid v = u^(1/2.2)).
 
-## Profile màu (đã build, chưa flash, chưa thử trên máy)
+## Colour profiles (built, not flashed, not camera-tested)
 
 ```sh
-research/.venv/bin/python research/spectral_gen.py   # look từ datasheet Kodak -> research/clut/SFL *.npz
+research/.venv/bin/python research/spectral_gen.py   # looks from Kodak datasheets -> research/clut/SFL *.npz
 python3 research/film_fit.py "research/clut/SFL Kodachrome 64.npz" "research/clut/SFL Portra 160 Endura.npz"
-python3 tools/m8lut.py build --srgb SFL_Portra_160_Endura          # một look, trên firmware gốc
+python3 tools/m8lut.py build --srgb SFL_Portra_160_Endura          # one look, on stock firmware
 python3 tools/m8lut.py build --base firmware/dng/m8-2_014-patched.upd \
     --srgb SFL_Kodachrome_64 --adobe SFL_Portra_160_Endura --out m8-2_014-dng14-kodachrome-portra.upd
-python3 research/ccd_check.py build/X.upd "research/clut/<look>.npz" ...   # số đo + build/preview.png
+python3 research/ccd_check.py build/X.upd "research/clut/<look>.npz" ...   # metrics + build/preview.png
 ```
 
-**Nguồn look:** [Spectral Film LUT](https://github.com/JanLohse/spectral_film_lut) (MIT): datasheet Kodak
-đã số hoá (độ nhạy phổ, đường đặc tuyến, mật độ phổ thuốc nhuộm) → mô phỏng phổ cảnh → film (→ giấy in).
-Kodachrome 64 (slide, cân bằng theo trắng của slide, xem ở D65); Portra 160 in trên Kodak Portra Endura.
-Input là ánh sáng cảnh (scene-linear), khớp đúng đầu vào của pipeline M8. Bộ CLUT RawTherapee cũ chỉ còn
-để tham khảo (Kodachrome bị vàng nhạt).
+**Look source:** [Spectral Film LUT](https://github.com/JanLohse/spectral_film_lut) (MIT): digitised Kodak
+datasheets (spectral sensitivity, characteristic curves, spectral dye density) → spectral simulation of
+scene → film (→ paper). Kodachrome 64 (slide, balanced on the slide's white, viewed at D65); Portra 160
+printed on Kodak Portra Endura. Input is scene-linear light, matching the M8 pipeline's input. The old
+RawTherapee CLUTs stay for reference only (pale Kodachrome yellows).
 
-**Đối chiếu độc lập** (`research/spk_crosscheck.py`, chạy trong `research/.venv-spk`): cùng 24 ô
-ColorChecker qua [spektrafilm](https://github.com/andreavolpato/spektrafilm) (GPL-3, mô phỏng phổ khác,
-cũng từ datasheet): trung vị ΔE76 giữa hai bộ mô phỏng 5.6 (Kodachrome 64), 9.6 (Portra 160 + Endura;
-spektrafilm cho da ấm và magenta rực hơn). Hai nguồn độc lập cùng hướng → look có cơ sở.
+**Independent cross-check** (`research/spk_crosscheck.py`, run in `research/.venv-spk`): the same 24
+ColorChecker patches through [spektrafilm](https://github.com/andreavolpato/spektrafilm) (GPL-3, a
+different spectral simulator, also datasheet-driven): median ΔE76 between the two simulators 5.6
+(Kodachrome 64), 9.6 (Portra 160 + Endura; spektrafilm renders warmer skin and stronger magenta).
 
-Mỗi Color space trong menu là một bộ ma trận + đường cong riêng, nên **một bản flash chứa được 3 look**:
-look định nghĩa trong sRGB tuyến tính, áp lên rendering Leica của chính không gian đó
-(`T · M_look · T⁻¹ · ma trận Leica`), đường cong mã hoá lại theo gamma của không gian (Adobe 2.2, ECI 1.8).
-Saturation và Contrast vẫn hoạt động. JPG Adobe/ECI mang ICC profile riêng (gasdevmco FINDINGS), xem
-bằng app có quản lý màu.
+Each Colour space in the menu has its own matrices and curves, so **one flash holds three looks**: a look
+is defined in linear sRGB and applied on top of that space's own Leica rendering
+(`T · M_look · T⁻¹ · Leica matrix`), with the curve re-encoded for the space (Adobe 2.2, ECI 1.8).
+Saturation and Contrast keep working. Adobe/ECI JPGs carry their own ICC profile (gasdevmco FINDINGS);
+view them in colour-managed apps.
 
-### Bản kết hợp: 14-bit DNG + Portra + Kodachrome
+### Combined build: 14-bit DNG + Portra + Kodachrome
 
 `build/m8-2_014-dng14-kodachrome-portra.upd` (SHA-256 `377f544d…01ad81`):
 
-| Color space | JPG |
+| Colour space | JPG |
 |---|---|
 | sRGB | Kodachrome 64 |
 | Adobe RGB | Portra 160 (Endura) |
-| ECI RGB | Leica gốc |
+| ECI RGB | Leica stock |
 
-- Base = build `9b9a489a…` của [gasdevmco/leica-m8-firmware](https://github.com/gasdevmco/leica-m8-firmware)
-  v0.10.0 (`python3 m8patch.py m8-2_014.upd`): JPG fine+RAW giữ được + DNG 14-bit trong máy. Patch đó
-  chỉ đổi `PXA`, profile màu chỉ đổi `GAMMA` → không chồng nhau. `m8lut.py` chỉ nhận base có hash nằm
-  trong danh sách build công bố của dự án đó và GAMMA của base phải là gốc.
-- Đã kiểm: PXA = base từng byte; GAMMA = hợp của 2 build đơn từng byte; ECI giữ gốc; mọi phần khác = gốc.
-  Look ở slot Adobe giải mã về sRGB lệch trung vị ΔE00 2.0 so với slot sRGB — cùng cỡ với chính
-  Leica (Adobe vs sRGB gốc: 2.3), vì Leica tự chỉnh riêng từng không gian.
-- DNG 14-bit là dữ liệu cảm biến thô: không bị profile ảnh hưởng. Đã có tiền lệ trên máy thật: Stage 12
-  của gasdevmco (đường cong GAMMA bake + patch PXA) chạy tốt; ma trận thì chưa (xem Thử 1).
+- Base = build `9b9a489a…` of [gasdevmco/leica-m8-firmware](https://github.com/gasdevmco/leica-m8-firmware)
+  v0.10.0 (`python3 m8patch.py m8-2_014.upd`): persistent JPG fine+RAW + in-camera 14-bit DNG. That patch
+  changes only `PXA`, the colour profiles only `GAMMA`, so they cannot overlap. `m8lut.py` accepts a base
+  only if its hash is one of that project's published builds and its GAMMA is stock.
+- Checked: PXA = base byte for byte; GAMMA = union of the two single builds byte for byte; ECI stock;
+  everything else stock. A look in the Adobe slot, decoded to sRGB, differs from the sRGB-slot version
+  by median ΔE00 2.0, the same size as Leica's own Adobe vs sRGB stock (2.3): Leica tunes each space.
+- The 14-bit DNG is raw sensor data, untouched by the profiles. Precedent on a camera: gasdevmco's
+  Stage 12 (baked GAMMA curves + PXA patches) ran fine; matrices are not yet proven (see Test 1).
 
-Tương thích cảm biến CCD (KAF-10500):
+CCD (KAF-10500) compatibility:
 
-- **Ma trận = M_look · ma trận gốc của Leica**, hàng cộng = 1 như cả 30 ma trận Leica: xám vẫn xám (AWB
-  của máy vẫn đúng), highlight CCD clip vẫn trung tính.
-- **Tone lấy từ trục xám của film**, bù điểm đen (Dmax → 0) như ICC perceptual; mid-grey đặt đúng 147
-  như Leica (đo sáng của M8 tính theo mức này).
-- **Shoulder**: trên mid-grey, gain giảm dần về 1.0 tại điểm CCD clip → 255 chỉ ở chỗ cảm biến clip.
-- Không khuếch đại noise vùng tối, không tăng ám magenta do IR.
+- **Matrix = M_look · Leica's stock matrix**, rows summing to 1 like all 30 Leica matrices: greys stay
+  grey (the camera's AWB stays right), clipped CCD highlights stay neutral.
+- **Tone from the film's grey axis**, black-point compensated (Dmax → 0) as in ICC perceptual; mid-grey
+  at Leica's 147 (what the M8's metering is made for).
+- **Shoulder**: above mid-grey the gain rolls off to 1.0 at the CCD clip point → 255 only where it clips.
+- No extra shadow-noise gain, no stronger IR magenta cast.
 
-| Build | ΔE00 vs nguồn | clip (cam 1,1,1) | noise tối 1% | noise 18% | chroma IR |
+| Build | ΔE00 vs source | clip (cam 1,1,1) | shadow noise 1% | noise 18% | IR chroma |
 |---|---|---|---|---|---|
-| Leica gốc | | 255,255,255 | 1.00 | 1.00 | 25.5 |
+| Leica stock | | 255,255,255 | 1.00 | 1.00 | 25.5 |
 | Portra 160 (Endura) | 4.3 | 255,255,255 | 0.22 | 0.76 | 12.1 |
 | Kodachrome 64 | 5.0 | 255,255,255 | 0.35 | 0.80 | 17.3 |
 
-Khác biệt so với Leica gốc trên ColorChecker: trung vị ΔE00 8.2 (Portra), 6.0 (Kodachrome), xám giữ
-nguyên. Cả hai đều **dịu hơn** sRGB Standard của Leica (vốn rất rực). So sánh nửa-nửa: `docs/compare.png`.
+Difference from Leica stock on a ColorChecker: median ΔE00 8.2 (Portra), 6.0 (Kodachrome), greys
+unchanged. Both are **softer** than Leica's very saturated sRGB Standard. Split comparison: `docs/compare.png`.
 
-Noise = độ khuếch đại so với Leica gốc. Chroma IR là **giả định** (IR lọt vào R và B nhiều hơn G); vẫn
-nên dùng filter UV/IR. Giới hạn của ma trận 3×3: vàng/xanh dương Kodachrome nhạt hơn mô phỏng
-(vàng film 244,220,84 → M8 222,209,110).
+Noise = gain relative to Leica stock. IR chroma is an **assumption** (NIR leaks into R and B more than
+G); a UV/IR filter is still recommended. 3×3 matrix limit: Kodachrome yellows/blues come out lighter
+than the simulation (film yellow 244,220,84 → M8 222,209,110).
 
-![so sánh](docs/compare.png)
+![comparison](docs/compare.png)
 
 ![preview](docs/preview.png)
 
-## Thử 1: Blackfin có dùng ma trận không?
+## Test 1: does the Blackfin use the matrices?
 
 ```sh
-python3 tools/m8lut.py bw-test     # build/m8-2_014-bwtest.upd: #14 và #15 -> đen trắng, 36 byte
+python3 tools/m8lut.py bw-test     # build/m8-2_014-bwtest.upd: #14 and #15 -> monochrome, 36 bytes
+python3 tools/m8lut.py dump        # print all 30 matrices
 ```
 
-1. Pin đầy; thẻ thứ hai chỉ chứa `m8-2_014.upd` gốc để rollback.
-2. Chép file build vào thẻ, **đổi tên trên thẻ thành `M8-2_014.UPD`**, cập nhật firmware như bình thường.
-3. Đặt Color space **sRGB**, Saturation **Standard**, chụp JPG một cảnh nhiều màu.
-4. JPG đen trắng → ma trận được dùng. Không đổi → ghi lại, flash gốc.
+1. Full battery; a second card holding only the stock `m8-2_014.upd` for rollback.
+2. Copy the build to a card, **rename it on the card to `M8-2_014.UPD`**, run the normal firmware update.
+3. Set Colour space **sRGB**, Saturation **Standard**, shoot a JPG of a colourful scene.
+4. Monochrome JPG → the matrices are used. No change → note it, flash stock back.
