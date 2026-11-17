@@ -6,7 +6,7 @@ GAMMA layout (README): +0x1D0 30 matrices, 3x3 int16 Q13 (8192 = 1.0), index = 1
 Space 0 = Adobe RGB, 1 = sRGB, 2 = ECI RGB (the Colour space menu). JPG = curve(matrix . camera RGB).
 
   python3 tools/m8lut.py dump                     # print all 30 matrices
-  python3 tools/m8lut.py bw-test                  # #14+#15 -> monochrome (does the Blackfin use them?)
+  python3 tools/m8lut.py bw-test [--all]          # monochrome matrices + darker control curve (see README Test 1)
   python3 tools/m8lut.py build [--base FILE] [--srgb LOOK] [--adobe LOOK] [--eci LOOK] [--out NAME]
       LOOK = research/fits/fit_<LOOK>.npz, e.g. SFL_Portra_160_Endura. A space without a look keeps Leica's.
       --base: start from a gasdevmco/leica-m8-firmware 2.014 build (14-bit DNG, PXA only) instead of stock;
@@ -164,7 +164,14 @@ def main():
         for i in range(N_MAT):
             print(f'{i:2d} file 0x{g + MAT_OFF + 18 * i:05X}', ' | '.join(' '.join(f'{v:6.3f}' for v in r) for r in matrix(d, g, i)))
     elif cmd == 'bw-test':
-        write(d, {g + MAT_OFF + 18 * s: q13([[0.299, 0.587, 0.114]] * 3) for s in (14, 15)}, 'm8-2_014-bwtest.upd', base)
+        # matrices -> monochrome; curve -> 0.6x output as a control on the path proven on hardware (curves):
+        # dark + B&W = matrices used; dark + colour = curves used, these matrices not; neither = not loaded.
+        # --all: every matrix and curve, to tell "matrices unused" from "wrong slot guess".
+        al = '--all' in a
+        mats, curves = (range(N_MAT), range(15)) if al else ((14, 15), (7,))
+        p = {g + MAT_OFF + 18 * s: q13([[0.299, 0.587, 0.114]] * 3) for s in mats}
+        p.update({g + CURVE_OFF + CURVE_LEN * k: bytes(round(v * 0.6) for v in curve(d, g, k)) for k in curves})
+        write(d, p, f'm8-2_014-bwtest{"-all" if al else ""}.upd', base)
     elif cmd == 'build':
         looks = {s: opt('--' + s) for s in SPACES if opt('--' + s)}
         if not looks:

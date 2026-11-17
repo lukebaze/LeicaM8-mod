@@ -141,11 +141,25 @@ from the file); nothing is painted by hand.
 ## Test 1: does the Blackfin use the matrices?
 
 ```sh
-python3 tools/m8lut.py bw-test     # build/m8-2_014-bwtest.upd: #14 and #15 -> monochrome, 36 bytes
-python3 tools/m8lut.py dump        # print all 30 matrices
+python3 tools/m8lut.py bw-test         # #14/#15 -> monochrome, curve 7 -> 0.6x output (control)
+python3 tools/m8lut.py bw-test --all   # all 30 matrices + all 15 curves, same changes
+python3 tools/m8lut.py dump            # print all 30 matrices
 ```
 
+The darker curve is a control on the path already proven on hardware (gasdevmco Stage 11/12): it
+shows the GAMMA table really loaded, so a colour JPG can't be mistaken for a failed flash.
+
 1. Full battery; a second card holding only the stock `m8-2_014.upd` for rollback.
-2. Copy the build to a card, **rename it on the card to `M8-2_014.UPD`**, run the normal firmware update.
-3. Set Colour space **sRGB**, Saturation **Standard**, shoot a JPG of a colourful scene.
-4. Monochrome JPG → the matrices are used. No change → note it, flash stock back.
+2. Copy `bwtest.upd` to a card, **rename it on the card to `M8-2_014.UPD`**, run the firmware update.
+3. Colour space **sRGB**, Saturation **Standard**, Contrast **Standard**; shoot a colourful scene, JPG.
+
+| JPG | Meaning | Next |
+|---|---|---|
+| dark + B&W | matrices used, slot guess right | flash the look build |
+| dark + colour | curves used; #14/#15 not used (wrong slot, or matrices live elsewhere) | flash `bwtest-all.upd`, same shot |
+| normal + colour | GAMMA not loaded, or other settings | check the JPG's Colour space / Saturation / Contrast in EXIF, flash again |
+
+With `bwtest-all.upd`: B&W in any setting → matrices used, my slot mapping is wrong; bisect it.
+Still colour → these 30 matrices don't drive the JPG; only the tone half of the looks works
+(curve-only fits barely move ΔE), so don't flash the look builds; the colour stage then lives in the
+Blackfin code or another LUT (`LEICA`, `GAIN`) and needs Blackfin disassembly.
