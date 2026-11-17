@@ -94,7 +94,9 @@ def write(d, patches, name, base):
     if os.path.exists(out):
         sys.exit(f'{out} exists, not overwriting')
     open(out, 'wb').write(d)
-    print(f'{out}\n  {len(changed)} bytes changed from {os.path.basename(base)}, all inside GAMMA'
+    pxa_o, pxa_n = wad(ref)['PXA']
+    in_pxa = sum(pxa_o <= i < pxa_o + pxa_n for i in changed)
+    print(f'{out}\n  {len(changed)} bytes changed from {os.path.basename(base)}: {len(changed) - in_pxa} in GAMMA, {in_pxa} in PXA'
           f'\n  SHA-256 {hashlib.sha256(d).hexdigest()}')
     print('  on the card rename it to M8-2_014.UPD; roll back by flashing the stock file')
     return out
@@ -204,6 +206,17 @@ def main():
             sys.exit(__doc__)
         print(f'base: {BASES.get(hashlib.sha256(open(base, "rb").read()).hexdigest(), "Leica stock 2.014")}')
         patches = gamma_patches(d, g, looks, opt('--bw'))
+        if '--raw-default' in a:
+            # Factory profile template 0x20F9C: `strh lr, [r0, #0x2c]` (compression = 1, JPG fine) becomes
+            # `strh r7, [r0, #0x2c]` (r7 = 5 there: JPG fine+RAW). One register field in one instruction,
+            # no new code; runs when the camera resets its settings (after a firmware update, bad CRC) and
+            # for profile 0 at every boot. Needs the base's persistent-RAW patch (P1 at 0x2191C = nop),
+            # else the loader turns 5 back into 1. Emulator check: research/settings_emutest.py.
+            po, _ = wad(d)['PXA']
+            assert d[po + 0x191C:po + 0x1920] == bytes.fromhex('0000a0e1'), 'base lacks the persistent-RAW patch'
+            assert d[po + 0xFF4:po + 0xFF8] == bytes.fromhex('bce2c0e1'), 'unexpected instruction at 0x20FF4'
+            patches[po + 0xFF4] = bytes.fromhex('bc72c0e1')
+            print('PXA   0x20FF4: factory default Compression = JPG fine+RAW')
         dng = '-dng' if base != STOCK else ''
         write(d, patches, opt('--out') or f'm8-2_014{dng}-' + '-'.join(f'{s}_{n.lower()}' for s, n in looks.items()) + '.upd', base)
     elif cmd == 'lut':

@@ -95,6 +95,16 @@ is defined in linear sRGB and applied on top of that space's own Leica rendering
 Saturation and Contrast keep working. Adobe/ECI JPGs carry their own ICC profile (gasdevmco FINDINGS);
 view them in colour-managed apps.
 
+### `--raw-default`: JPG fine+RAW as the factory default
+
+A firmware update resets the camera's settings (Leica's note), so the profiles must be set again
+after every flash. `--raw-default` changes **one register field in one instruction** of the factory
+profile template (`0x20FF4`: `strh lr` → `strh r7`, compression 1 → 5); no new code. Records reset to
+defaults and profile 0 (rebuilt at every boot) then start in JPG fine+RAW; a valid EEPROM keeps the
+owner's settings. Needs a base with the persistent-RAW patch (the tool checks it). Simple mode gets
+JPG fine+RAW too. Emulator: `research/settings_emutest.py` runs the camera's real defaults/loader/crc32
+code from base and build: 24/24, only the six compression bytes differ, same firmware calls.
+
 ### Combined build: 14-bit DNG + Portra + Kodachrome
 
 `build/m8-2_014-dng14-kodachrome-portra.upd` (SHA-256 `377f544d…01ad81`):

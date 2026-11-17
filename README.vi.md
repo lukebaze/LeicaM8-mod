@@ -91,6 +91,16 @@ look định nghĩa trong sRGB tuyến tính, áp lên rendering Leica của ch�
 Saturation và Contrast vẫn hoạt động. JPG Adobe/ECI mang ICC profile riêng (gasdevmco FINDINGS), xem
 bằng app có quản lý màu.
 
+### `--raw-default`: mặc định gốc là JPG fine+RAW
+
+Cập nhật firmware sẽ reset cài đặt (theo Leica), nên sau mỗi lần flash phải cài lại profile.
+`--raw-default` đổi **một trường thanh ghi trong một lệnh** của mẫu profile mặc định (`0x20FF4`:
+`strh lr` → `strh r7`, compression 1 → 5); không thêm code. Bản ghi bị reset và profile 0 (dựng lại mỗi
+lần bật máy) khi đó bắt đầu ở JPG fine+RAW; EEPROM hợp lệ giữ nguyên cài đặt của chủ máy. Cần base có patch
+persistent-RAW (tool tự kiểm). Chế độ Simple cũng thành JPG fine+RAW. Giả lập:
+`research/settings_emutest.py` chạy code defaults/loader/crc32 thật của máy trên base và build: 24/24, chỉ
+6 byte compression khác, cùng chuỗi lời gọi firmware.
+
 ### Bản kết hợp: 14-bit DNG + Portra + Kodachrome
 
 `build/m8-2_014-dng14-kodachrome-portra.upd` (SHA-256 `377f544d…01ad81`):
