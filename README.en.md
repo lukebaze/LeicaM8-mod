@@ -55,6 +55,11 @@ scene → film (→ paper). Kodachrome 64 (slide, balanced on the slide's white,
 printed on Kodak Portra Endura. Input is scene-linear light, matching the M8 pipeline's input. The old
 RawTherapee CLUTs stay for reference only (pale Kodachrome yellows).
 
+**Independent cross-check** (`research/spk_crosscheck.py`, run in `research/.venv-spk`): the same 24
+ColorChecker patches through [spektrafilm](https://github.com/andreavolpato/spektrafilm) (GPL-3, a
+different spectral simulator, also datasheet-driven): median ΔE76 between the two simulators 5.6
+(Kodachrome 64), 9.6 (Portra 160 + Endura; spektrafilm renders warmer skin and stronger magenta).
+
 Only the **sRGB** colour space changes (matrices #10–19, curves 5–9). Adobe RGB / ECI RGB keep Leica's
 colour, so switching Colour space returns the stock look without reflashing. Saturation and Contrast
 keep working.
@@ -82,17 +87,6 @@ G); a UV/IR filter is still recommended. 3×3 matrix limit: Kodachrome yellows/b
 than the simulation (film yellow 244,220,84 → M8 222,209,110).
 
 ![comparison](docs/compare.png)
-
-| Build | ΔE00 vs CLUT | clip (cam 1,1,1) | shadow noise 1% | noise 18% | IR chroma |
-|---|---|---|---|---|---|
-| Leica stock | | 255,255,255 | 1.00 | 1.00 | 25.5 |
-| Portra 160 | 3.3 | 255,255,255 | 0.70 | 0.55 | 18.2 |
-| Kodachrome 64 | 5.0 | 254,254,254 | 0.76 | 0.70 | 17.0 |
-| Kodachrome 200 | 3.7 | 254,254,254 | 0.67 | 0.81 | 17.2 |
-
-Noise = gain relative to Leica stock. IR chroma is an **assumption** (NIR leaks into R and B more than
-G); a UV/IR filter is still recommended. ΔE is above the fit (3.2 / 4.0) because the shoulder departs
-from the CLUT in the highlights on purpose.
 
 ![preview](docs/preview.png)
 

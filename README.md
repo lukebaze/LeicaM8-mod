@@ -50,6 +50,11 @@ Kodachrome 64 (slide, cân bằng theo trắng của slide, xem ở D65); Portra
 Input là ánh sáng cảnh (scene-linear), khớp đúng đầu vào của pipeline M8. Bộ CLUT RawTherapee cũ chỉ còn
 để tham khảo (Kodachrome bị vàng nhạt).
 
+**Đối chiếu độc lập** (`research/spk_crosscheck.py`, chạy trong `research/.venv-spk`): cùng 24 ô
+ColorChecker qua [spektrafilm](https://github.com/andreavolpato/spektrafilm) (GPL-3, mô phỏng phổ khác,
+cũng từ datasheet): trung vị ΔE76 giữa hai bộ mô phỏng 5.6 (Kodachrome 64), 9.6 (Portra 160 + Endura;
+spektrafilm cho da ấm và magenta rực hơn). Hai nguồn độc lập cùng hướng → look có cơ sở.
+
 Chỉ sửa không gian **sRGB** (ma trận #10–19, đường cong 5–9). Adobe RGB / ECI RGB giữ màu Leica gốc,
 nên đổi Color space là về màu gốc, không cần flash lại. Saturation và Contrast vẫn hoạt động.
 
@@ -76,16 +81,6 @@ nên dùng filter UV/IR. Giới hạn của ma trận 3×3: vàng/xanh dương K
 (vàng film 244,220,84 → M8 222,209,110).
 
 ![so sánh](docs/compare.png)
-
-| Build | ΔE00 vs CLUT | clip (cam 1,1,1) | noise tối 1% | noise 18% | chroma IR |
-|---|---|---|---|---|---|
-| Leica gốc | | 255,255,255 | 1.00 | 1.00 | 25.5 |
-| Portra 160 | 3.3 | 255,255,255 | 0.70 | 0.55 | 18.2 |
-| Kodachrome 64 | 5.0 | 254,254,254 | 0.76 | 0.70 | 17.0 |
-| Kodachrome 200 | 3.7 | 254,254,254 | 0.67 | 0.81 | 17.2 |
-
-Noise = độ khuếch đại so với Leica gốc. Chroma IR là **giả định** (IR lọt vào R và B nhiều hơn G); vẫn
-nên dùng filter UV/IR. ΔE cao hơn lúc fit (3.2 / 4.0) vì shoulder cố ý khác CLUT ở vùng highlight.
 
 ![preview](docs/preview.png)
 
