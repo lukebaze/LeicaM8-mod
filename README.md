@@ -36,9 +36,17 @@ only `PXA`. The two never overlap; the bootloader and SD-card updater stay stock
 
 ## Setup on the camera
 
-Recommended build: `--base` the gasdevmco `--dial-ev` file, `--srgb SFL_Kodachrome_64
---adobe SFL_Portra_160_Endura --bw eci --raw-default` (camera-checked 2026-11-17: JPG looks match the
-flashed table, 14-bit DNG white balance and MakerNote match the JPG).
+Recommended build: `--base` gasdevmco's `dng --meta --profiles --dial-ev` file (`4359b04b…`),
+`--srgb SFL_Kodachrome_64 --adobe SFL_Portra_160_Endura --bw eci --raw-default`, plus the card looks
+(`build/PROFILES`, see *More looks from the card*). The colour slots and the 14-bit DNG are
+camera-checked (2026-11-17, on the `--dial-ev` base; the PXA pieces of this base were camera-tested
+by gasdevmco as this exact file).
+
+```sh
+python3 tools/m8lut.py build --base firmware/dng/m8-2_014-dng-profiles-dial.upd \
+    --srgb SFL_Kodachrome_64 --adobe SFL_Portra_160_Endura --bw eci --raw-default \
+    --out m8-2_014-dng14-picker-dial-kodachrome-portra-bw-raw.upd
+```
 
 **1. Flash** (Leica's procedure)
 
@@ -48,27 +56,35 @@ flashed table, 14-bit DNG white balance and MakerNote match the JPG).
    `dot_clean -m /Volumes/CARD; rm -f /Volumes/CARD/._*`. Check the SHA-256 on the card.
 3. Card in, switch on, wait 3 s, confirm the update. About 3 minutes; the bar pauses near 60 %.
    **Don't touch the switch, battery or card until it asks for a restart.** Then off and on.
+4. Copy the `PROFILES` folder (the `.LUT` files) to the card root, next to `DCIM`.
 
-The update resets every setting, so do step 2 after each flash.
+The update resets every setting, so set the profiles again after each flash.
 
-**2. User profiles** (MENU → *Save User Profile*)
+**2. User profiles** (MENU → *Save User Profile*). Only **profiles 1–3 can be saved**; profile 0 is
+the factory default, rebuilt at every power-on.
 
 | Profile | Color Management | Saturation | Contrast | Compression | JPG look |
 |---|---|---|---|---|---|
-| 0 | sRGB | Standard | Standard | JPG fine+RAW | Kodachrome 64 |
+| 0 (factory, not saveable) | sRGB | Standard | Standard | JPG fine+RAW | Kodachrome 64 |
 | 1 | Adobe RGB | Standard | Standard | JPG fine+RAW | Portra 160 |
 | 2 | ECI RGB | Standard | Standard | JPG fine+RAW | Leica stock |
 | 3 | ECI RGB | **Low** | Standard | JPG fine+RAW | Black & white (Leica tone) |
 
-- Profile 0 is rebuilt from the factory template at every power-on, so it can't be saved; with
-  `--raw-default` its defaults (sRGB, Standard, JPG fine+RAW) already are the Kodachrome setup.
+- Profile 0 can't be configured; with `--raw-default` its defaults (sRGB, Standard, JPG fine+RAW)
+  already are the Kodachrome setup, so it needs no saving.
 - Other Saturation/Contrast steps keep working on top of each look.
 - Adobe RGB and ECI RGB JPGs carry their ICC profile: view or export them in colour-managed apps
   (Lightroom, Photos, browsers); convert to sRGB before posting to apps that ignore ICC.
 - The look is in the JPG only. The `.RAW` (14-bit DNG; rename to `.DNG` outside Lightroom) is raw data,
   white balance "As Shot" = the JPG's.
 
-**3. Check**
+**3. Card looks** (picture-profile picker): in shooting mode INFO → UP → choose a look → SET → INFO.
+The look replaces the **sRGB** slot (Kodachrome) until power-off; Portra, Leica and B&W stay. Load
+`DEFAULT` to go back without switching off. First time: load `BWTEST` and shoot in sRGB; dark + black &
+white means card looks carry their colour, dark + colour means only their tone (then prefer the
+`--dial-ev` build).
+
+**4. Check**
 
 - SET → Compression shows JPG fine+RAW, and still does after a power cycle.
 - Each shot gives `L…JPG` + `L…RAW` (21,049,052 bytes).

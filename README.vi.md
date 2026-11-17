@@ -36,9 +36,16 @@ Hai phần không chồng nhau; bootloader và updater thẻ SD giữ nguyên g�
 
 ## Cài đặt trên máy
 
-Bản khuyên dùng: `--base` file `--dial-ev` của gasdevmco, `--srgb SFL_Kodachrome_64
---adobe SFL_Portra_160_Endura --bw eci --raw-default` (đã kiểm trên máy 2026-11-17: look trong JPG khớp
-bảng đã flash, white balance và MakerNote của DNG 14-bit khớp JPG).
+Bản khuyên dùng: `--base` file `dng --meta --profiles --dial-ev` của gasdevmco (`4359b04b…`),
+`--srgb SFL_Kodachrome_64 --adobe SFL_Portra_160_Endura --bw eci --raw-default`, cộng các look trên thẻ
+(`build/PROFILES`, xem *Thêm look từ thẻ*). Các slot màu và DNG 14-bit đã kiểm trên máy (2026-11-17, trên
+base `--dial-ev`; phần PXA của base này gasdevmco đã thử đúng file đó trên máy).
+
+```sh
+python3 tools/m8lut.py build --base firmware/dng/m8-2_014-dng-profiles-dial.upd \
+    --srgb SFL_Kodachrome_64 --adobe SFL_Portra_160_Endura --bw eci --raw-default \
+    --out m8-2_014-dng14-picker-dial-kodachrome-portra-bw-raw.upd
+```
 
 **1. Flash** (theo quy trình Leica)
 
@@ -48,27 +55,34 @@ bảng đã flash, white balance và MakerNote của DNG 14-bit khớp JPG).
    `dot_clean -m /Volumes/THE; rm -f /Volumes/THE/._*`. Kiểm SHA-256 của file trên thẻ.
 3. Cắm thẻ, bật máy, chờ 3 giây, xác nhận cập nhật. Khoảng 3 phút; thanh tiến trình dừng ở ~60%.
    **Không chạm công tắc, pin hay thẻ cho tới khi máy báo khởi động lại.** Sau đó tắt rồi bật.
+4. Chép thư mục `PROFILES` (các file `.LUT`) vào thư mục gốc của thẻ, cạnh `DCIM`.
 
-Cập nhật firmware reset mọi cài đặt, nên làm bước 2 sau mỗi lần flash.
+Cập nhật firmware reset mọi cài đặt, nên cài lại profile sau mỗi lần flash.
 
-**2. User profile** (MENU → *Save User Profile*)
+**2. User profile** (MENU → *Save User Profile*). Chỉ **lưu được profile 1–3**; profile 0 là mặc định
+gốc, máy dựng lại mỗi lần bật.
 
 | Profile | Color Management | Saturation | Contrast | Compression | Look JPG |
 |---|---|---|---|---|---|
-| 0 | sRGB | Standard | Standard | JPG fine+RAW | Kodachrome 64 |
+| 0 (mặc định, không lưu được) | sRGB | Standard | Standard | JPG fine+RAW | Kodachrome 64 |
 | 1 | Adobe RGB | Standard | Standard | JPG fine+RAW | Portra 160 |
 | 2 | ECI RGB | Standard | Standard | JPG fine+RAW | Leica gốc |
 | 3 | ECI RGB | **Low** | Standard | JPG fine+RAW | Đen trắng (tone Leica) |
 
-- Profile 0 được dựng lại từ mẫu gốc mỗi lần bật máy nên không lưu được; với `--raw-default`, mặc định
-  của nó (sRGB, Standard, JPG fine+RAW) chính là cài đặt Kodachrome.
+- Profile 0 không cấu hình được; với `--raw-default`, mặc định của nó (sRGB, Standard, JPG fine+RAW)
+  chính là cài đặt Kodachrome nên không cần lưu.
 - Các mức Saturation/Contrast khác vẫn hoạt động, chồng lên từng look.
 - JPG Adobe RGB và ECI RGB có nhúng ICC: xem/xuất bằng app có quản lý màu (Lightroom, Photos, trình duyệt);
   convert sang sRGB trước khi đăng lên app bỏ qua ICC.
 - Look chỉ nằm trong JPG. File `.RAW` (DNG 14-bit; ngoài Lightroom thì đổi đuôi thành `.DNG`) là dữ liệu
   thô, white balance "As Shot" bằng của JPG.
 
-**3. Kiểm tra**
+**3. Look trên thẻ** (bộ chọn picture profile): ở chế độ chụp INFO → UP → chọn look → SET → INFO.
+Look thay slot **sRGB** (Kodachrome) đến khi tắt máy; Portra, Leica và đen trắng giữ nguyên. Nạp
+`DEFAULT` để quay lại mà không cần tắt máy. Lần đầu: nạp `BWTEST` và chụp ở sRGB; tối + đen trắng = look
+trên thẻ mang cả màu, tối + còn màu = chỉ mang tone (khi đó nên dùng bản `--dial-ev`).
+
+**4. Kiểm tra**
 
 - SET → Compression hiện JPG fine+RAW, và vẫn vậy sau khi tắt/bật máy.
 - Mỗi lần chụp ra `L…JPG` + `L…RAW` (21.049.052 byte).
