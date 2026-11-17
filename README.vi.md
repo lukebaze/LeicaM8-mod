@@ -9,7 +9,7 @@
 
 <p align="center">
   <img alt="firmware 2.014" src="https://img.shields.io/badge/firmware-2.014-161110?style=flat-square">
-  <img alt="trạng thái: chưa thử trên máy" src="https://img.shields.io/badge/trạng%20thái-chưa%20thử%20trên%20máy-e8a03a?style=flat-square">
+  <img alt="ma trận: đã thử trên máy" src="https://img.shields.io/badge/ma%20trận-đã%20thử%20trên%20máy-3a7d44?style=flat-square">
   <img alt="cảm biến: KAF-10500 CCD" src="https://img.shields.io/badge/cảm%20biến-KAF--10500%20CCD-5c5046?style=flat-square">
   <a href="LICENSE"><img alt="license: MIT" src="https://img.shields.io/badge/license-MIT-5c5046?style=flat-square"></a>
   <a href="README.md"><img alt="English" src="https://img.shields.io/badge/read-English-5c5046?style=flat-square"></a>
@@ -26,16 +26,20 @@ Project này chỉ sửa `LUTS/GAMMA` (ma trận màu + đường cong tone). Ba
 Hai phần không chồng nhau; bootloader và updater thẻ SD giữ nguyên gốc.
 
 > [!WARNING]
-> Chưa có gì ở đây chạy trên máy thật. Đường cong tone đi theo cách gasdevmco đã chứng minh trên máy;
-> ma trận màu suy ra từ phân tích tĩnh. Flash `bw-test` trước (bên dưới), và giữ một thẻ chứa
-> `m8-2_014.upd` gốc để rollback.
+> Ma trận màu đã được chứng minh trên máy thật (`bw-test`, 2026-11-17, bên dưới); bản look film thì
+> chưa flash. Giữ một thẻ chứa `m8-2_014.upd` gốc để rollback.
 
 **Không commit firmware Leica.** `firmware/stock/m8-2_014.upd` (SHA-256 `99f52548…09ed0`, nguồn:
 `fichiers.touslesdrivers.com/38007/m8-2_014.zip`) và `build/` bị gitignore.
 
 <p align="center"><img src="docs/compare.png" alt="Các ô ColorChecker chia đôi: trái là Leica gốc, phải là look, kèm CIEDE2000 giữa hai nửa" width="100%"></p>
 
-## Ma trận màu (GAMMA + 0x1D0) — tĩnh, chưa thử trên máy
+## Ma trận màu (GAMMA + 0x1D0) — đã thử trên máy
+
+**Thử trên máy 2026-11-17** (`bwtest.upd`, `68534e37…`, M8 chạy 2.014, ISO 160, 1/60 s): JPG sRGB
+(EXIF ColorSpace 1, Saturation/Contrast Standard) ra **đen trắng tuyệt đối** (R = G = B ở mọi pixel) và
+tối hơn (đường cong đối chứng); cùng cảnh ở Adobe RGB (ICC nhúng "Adobe RGB (1998)") vẫn có màu. Vậy
+Blackfin dùng các ma trận này, #14/#15 là sRGB Standard, và map không gian màu đúng.
 
 - 30 ma trận 3×3 int16 Q13 (8192 = 1.0); mọi hàng cộng = 1.0 → ma trận sau WB. Thêm 2 int16 cuối
   (`1742, 5858`) chưa rõ.

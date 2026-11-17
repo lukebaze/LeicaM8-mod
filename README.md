@@ -9,7 +9,7 @@
 
 <p align="center">
   <img alt="firmware 2.014" src="https://img.shields.io/badge/firmware-2.014-161110?style=flat-square">
-  <img alt="status: not camera-tested" src="https://img.shields.io/badge/status-not%20camera--tested-e8a03a?style=flat-square">
+  <img alt="matrices: camera-tested" src="https://img.shields.io/badge/matrices-camera--tested-3a7d44?style=flat-square">
   <img alt="sensor: KAF-10500 CCD" src="https://img.shields.io/badge/sensor-KAF--10500%20CCD-5c5046?style=flat-square">
   <a href="LICENSE"><img alt="license: MIT" src="https://img.shields.io/badge/license-MIT-5c5046?style=flat-square"></a>
   <a href="README.vi.md"><img alt="Tiếng Việt" src="https://img.shields.io/badge/đọc-tiếng%20Việt-5c5046?style=flat-square"></a>
@@ -26,16 +26,20 @@ build of [gasdevmco/leica-m8-firmware](https://github.com/gasdevmco/leica-m8-fir
 only `PXA`. The two never overlap; the bootloader and SD-card updater stay stock.
 
 > [!WARNING]
-> Nothing here has run on a camera yet. The tone curves follow a path gasdevmco proved on hardware;
-> the colour matrices are inferred from static analysis. Flash `bw-test` first (below), and keep a card
-> with the stock `m8-2_014.upd` to roll back.
+> The colour matrices are proven on a camera (`bw-test`, 2026-11-17, below); the film-look builds
+> themselves are not yet flashed. Keep a card with the stock `m8-2_014.upd` to roll back.
 
 **Never commit Leica firmware.** `firmware/stock/m8-2_014.upd` (SHA-256 `99f52548…09ed0`, source:
 `fichiers.touslesdrivers.com/38007/m8-2_014.zip`) and `build/` are git-ignored.
 
 <p align="center"><img src="docs/compare.png" alt="ColorChecker patches split in half: Leica stock on the left, the look on the right, with CIEDE2000 between the halves" width="100%"></p>
 
-## Colour matrices (GAMMA + 0x1D0): static analysis, not yet camera-tested
+## Colour matrices (GAMMA + 0x1D0): camera-tested
+
+**Camera test 2026-11-17** (`bwtest.upd`, `68534e37…`, M8 on 2.014, ISO 160, 1/60 s): the sRGB JPG
+(EXIF ColorSpace 1, Saturation/Contrast Standard) came out **exactly monochrome** (R = G = B in every
+pixel) and darker (control curve); the same scene in Adobe RGB (embedded ICC "Adobe RGB (1998)") stayed
+in colour. So the Blackfin uses these matrices, #14/#15 is sRGB Standard, and the space mapping holds.
 
 - 30 3×3 matrices, int16 Q13 (8192 = 1.0); every row sums to 1.0, i.e. post-white-balance
   matrices. Two trailing int16 (`1742, 5858`) of unknown purpose.
