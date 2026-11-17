@@ -42,7 +42,7 @@ research/.venv/bin/python research/spectral_gen.py   # look từ datasheet Kodak
 python3 research/film_fit.py "research/clut/SFL Kodachrome 64.npz" "research/clut/SFL Portra 160 Endura.npz"
 python3 tools/m8lut.py build --srgb SFL_Portra_160_Endura          # một look, trên firmware gốc
 python3 tools/m8lut.py build --base firmware/dng/m8-2_014-patched.upd \
-    --srgb SFL_Portra_160_Endura --adobe SFL_Kodachrome_64 --out m8-2_014-dng14-portra-kodachrome.upd
+    --srgb SFL_Kodachrome_64 --adobe SFL_Portra_160_Endura --out m8-2_014-dng14-kodachrome-portra.upd
 python3 research/ccd_check.py build/X.upd "research/clut/<look>.npz" ...   # số đo + build/preview.png
 ```
 
@@ -65,12 +65,12 @@ bằng app có quản lý màu.
 
 ### Bản kết hợp: 14-bit DNG + Portra + Kodachrome
 
-`build/m8-2_014-dng14-portra-kodachrome.upd` (SHA-256 `af5697d6…cb8862`):
+`build/m8-2_014-dng14-kodachrome-portra.upd` (SHA-256 `377f544d…01ad81`):
 
 | Color space | JPG |
 |---|---|
-| sRGB | Portra 160 (Endura) |
-| Adobe RGB | Kodachrome 64 |
+| sRGB | Kodachrome 64 |
+| Adobe RGB | Portra 160 (Endura) |
 | ECI RGB | Leica gốc |
 
 - Base = build `9b9a489a…` của [gasdevmco/leica-m8-firmware](https://github.com/gasdevmco/leica-m8-firmware)
@@ -78,7 +78,7 @@ bằng app có quản lý màu.
   chỉ đổi `PXA`, profile màu chỉ đổi `GAMMA` → không chồng nhau. `m8lut.py` chỉ nhận base có hash nằm
   trong danh sách build công bố của dự án đó và GAMMA của base phải là gốc.
 - Đã kiểm: PXA = base từng byte; GAMMA = hợp của 2 build đơn từng byte; ECI giữ gốc; mọi phần khác = gốc.
-  Kodachrome ở slot Adobe giải mã về sRGB lệch trung vị ΔE00 2.0 so với slot sRGB — cùng cỡ với chính
+  Look ở slot Adobe giải mã về sRGB lệch trung vị ΔE00 2.0 so với slot sRGB — cùng cỡ với chính
   Leica (Adobe vs sRGB gốc: 2.3), vì Leica tự chỉnh riêng từng không gian.
 - DNG 14-bit là dữ liệu cảm biến thô: không bị profile ảnh hưởng. Đã có tiền lệ trên máy thật: Stage 12
   của gasdevmco (đường cong GAMMA bake + patch PXA) chạy tốt; ma trận thì chưa (xem Thử 1).

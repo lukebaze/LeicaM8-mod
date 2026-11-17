@@ -47,7 +47,7 @@ research/.venv/bin/python research/spectral_gen.py   # looks from Kodak datashee
 python3 research/film_fit.py "research/clut/SFL Kodachrome 64.npz" "research/clut/SFL Portra 160 Endura.npz"
 python3 tools/m8lut.py build --srgb SFL_Portra_160_Endura          # one look, on stock firmware
 python3 tools/m8lut.py build --base firmware/dng/m8-2_014-patched.upd \
-    --srgb SFL_Portra_160_Endura --adobe SFL_Kodachrome_64 --out m8-2_014-dng14-portra-kodachrome.upd
+    --srgb SFL_Kodachrome_64 --adobe SFL_Portra_160_Endura --out m8-2_014-dng14-kodachrome-portra.upd
 python3 research/ccd_check.py build/X.upd "research/clut/<look>.npz" ...   # metrics + build/preview.png
 ```
 
@@ -70,12 +70,12 @@ view them in colour-managed apps.
 
 ### Combined build: 14-bit DNG + Portra + Kodachrome
 
-`build/m8-2_014-dng14-portra-kodachrome.upd` (SHA-256 `af5697d6…cb8862`):
+`build/m8-2_014-dng14-kodachrome-portra.upd` (SHA-256 `377f544d…01ad81`):
 
 | Colour space | JPG |
 |---|---|
-| sRGB | Portra 160 (Endura) |
-| Adobe RGB | Kodachrome 64 |
+| sRGB | Kodachrome 64 |
+| Adobe RGB | Portra 160 (Endura) |
 | ECI RGB | Leica stock |
 
 - Base = build `9b9a489a…` of [gasdevmco/leica-m8-firmware](https://github.com/gasdevmco/leica-m8-firmware)
@@ -83,7 +83,7 @@ view them in colour-managed apps.
   changes only `PXA`, the colour profiles only `GAMMA`, so they cannot overlap. `m8lut.py` accepts a base
   only if its hash is one of that project's published builds and its GAMMA is stock.
 - Checked: PXA = base byte for byte; GAMMA = union of the two single builds byte for byte; ECI stock;
-  everything else stock. Kodachrome in the Adobe slot, decoded to sRGB, differs from the sRGB-slot version
+  everything else stock. A look in the Adobe slot, decoded to sRGB, differs from the sRGB-slot version
   by median ΔE00 2.0, the same size as Leica's own Adobe vs sRGB stock (2.3): Leica tunes each space.
 - The 14-bit DNG is raw sensor data, untouched by the profiles. Precedent on a camera: gasdevmco's
   Stage 12 (baked GAMMA curves + PXA patches) ran fine; matrices are not yet proven (see Test 1).
