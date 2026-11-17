@@ -34,6 +34,51 @@ only `PXA`. The two never overlap; the bootloader and SD-card updater stay stock
 
 <p align="center"><img src="docs/compare.png" alt="ColorChecker patches split in half: Leica stock on the left, the look on the right, with CIEDE2000 between the halves" width="100%"></p>
 
+## Setup on the camera
+
+Recommended build: `--base` the gasdevmco `--dial-ev` file, `--srgb SFL_Kodachrome_64
+--adobe SFL_Portra_160_Endura --bw eci --raw-default` (camera-checked 2026-11-17: JPG looks match the
+flashed table, 14-bit DNG white balance and MakerNote match the JPG).
+
+**1. Flash** (Leica's procedure)
+
+1. Full battery. Keep a second card holding only the stock `m8-2_014.upd` for rollback.
+2. Format the card **in the camera**, then on the computer copy the build to the card root and rename it
+   there to `M8-2_014.UPD` (only one `.UPD` on the card). On macOS remove `._*` files:
+   `dot_clean -m /Volumes/CARD; rm -f /Volumes/CARD/._*`. Check the SHA-256 on the card.
+3. Card in, switch on, wait 3 s, confirm the update. About 3 minutes; the bar pauses near 60 %.
+   **Don't touch the switch, battery or card until it asks for a restart.** Then off and on.
+
+The update resets every setting, so do step 2 after each flash.
+
+**2. User profiles** (MENU → *Save User Profile*)
+
+| Profile | Color Management | Saturation | Contrast | Compression | JPG look |
+|---|---|---|---|---|---|
+| 0 | sRGB | Standard | Standard | JPG fine+RAW | Kodachrome 64 |
+| 1 | Adobe RGB | Standard | Standard | JPG fine+RAW | Portra 160 |
+| 2 | ECI RGB | Standard | Standard | JPG fine+RAW | Leica stock |
+| 3 | ECI RGB | **Low** | Standard | JPG fine+RAW | Black & white (Leica tone) |
+
+- Profile 0 is rebuilt from the factory template at every power-on, so it can't be saved; with
+  `--raw-default` its defaults (sRGB, Standard, JPG fine+RAW) already are the Kodachrome setup.
+- Other Saturation/Contrast steps keep working on top of each look.
+- Adobe RGB and ECI RGB JPGs carry their ICC profile: view or export them in colour-managed apps
+  (Lightroom, Photos, browsers); convert to sRGB before posting to apps that ignore ICC.
+- The look is in the JPG only. The `.RAW` (14-bit DNG; rename to `.DNG` outside Lightroom) is raw data,
+  white balance "As Shot" = the JPG's.
+
+**3. Check**
+
+- SET → Compression shows JPG fine+RAW, and still does after a power cycle.
+- Each shot gives `L…JPG` + `L…RAW` (21,049,052 bytes).
+- Rear dial in shooting mode: first click opens EV, then ⅓ EV per click; UP/DOWN switches to ISO.
+- Same scene in each profile: `python3 research/shot_check.py build/<flashed>.upd tests/shots/L*.JPG`
+  (needs rawpy) should report "flashed look" for the sRGB and Adobe RGB shots.
+
+**If something goes wrong:** pull the battery (not the switch, not the card), power on, set
+Compression to JPG fine, flash the stock file from the rescue card.
+
 ## Colour matrices (GAMMA + 0x1D0): camera-tested
 
 **Camera test 2026-11-17** (`bwtest.upd`, `68534e37…`, M8 on 2.014, ISO 160, 1/60 s): the sRGB JPG

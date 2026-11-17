@@ -34,6 +34,51 @@ Hai phần không chồng nhau; bootloader và updater thẻ SD giữ nguyên g�
 
 <p align="center"><img src="docs/compare.png" alt="Các ô ColorChecker chia đôi: trái là Leica gốc, phải là look, kèm CIEDE2000 giữa hai nửa" width="100%"></p>
 
+## Cài đặt trên máy
+
+Bản khuyên dùng: `--base` file `--dial-ev` của gasdevmco, `--srgb SFL_Kodachrome_64
+--adobe SFL_Portra_160_Endura --bw eci --raw-default` (đã kiểm trên máy 2026-11-17: look trong JPG khớp
+bảng đã flash, white balance và MakerNote của DNG 14-bit khớp JPG).
+
+**1. Flash** (theo quy trình Leica)
+
+1. Pin đầy. Giữ một thẻ thứ hai chỉ chứa `m8-2_014.upd` gốc để rollback.
+2. Format thẻ **trong máy**, rồi trên máy tính chép file build vào thư mục gốc của thẻ và đổi tên ngay trên
+   thẻ thành `M8-2_014.UPD` (mỗi thẻ chỉ một file `.UPD`). Trên macOS xoá file `._*`:
+   `dot_clean -m /Volumes/THE; rm -f /Volumes/THE/._*`. Kiểm SHA-256 của file trên thẻ.
+3. Cắm thẻ, bật máy, chờ 3 giây, xác nhận cập nhật. Khoảng 3 phút; thanh tiến trình dừng ở ~60%.
+   **Không chạm công tắc, pin hay thẻ cho tới khi máy báo khởi động lại.** Sau đó tắt rồi bật.
+
+Cập nhật firmware reset mọi cài đặt, nên làm bước 2 sau mỗi lần flash.
+
+**2. User profile** (MENU → *Save User Profile*)
+
+| Profile | Color Management | Saturation | Contrast | Compression | Look JPG |
+|---|---|---|---|---|---|
+| 0 | sRGB | Standard | Standard | JPG fine+RAW | Kodachrome 64 |
+| 1 | Adobe RGB | Standard | Standard | JPG fine+RAW | Portra 160 |
+| 2 | ECI RGB | Standard | Standard | JPG fine+RAW | Leica gốc |
+| 3 | ECI RGB | **Low** | Standard | JPG fine+RAW | Đen trắng (tone Leica) |
+
+- Profile 0 được dựng lại từ mẫu gốc mỗi lần bật máy nên không lưu được; với `--raw-default`, mặc định
+  của nó (sRGB, Standard, JPG fine+RAW) chính là cài đặt Kodachrome.
+- Các mức Saturation/Contrast khác vẫn hoạt động, chồng lên từng look.
+- JPG Adobe RGB và ECI RGB có nhúng ICC: xem/xuất bằng app có quản lý màu (Lightroom, Photos, trình duyệt);
+  convert sang sRGB trước khi đăng lên app bỏ qua ICC.
+- Look chỉ nằm trong JPG. File `.RAW` (DNG 14-bit; ngoài Lightroom thì đổi đuôi thành `.DNG`) là dữ liệu
+  thô, white balance "As Shot" bằng của JPG.
+
+**3. Kiểm tra**
+
+- SET → Compression hiện JPG fine+RAW, và vẫn vậy sau khi tắt/bật máy.
+- Mỗi lần chụp ra `L…JPG` + `L…RAW` (21.049.052 byte).
+- Xoay dial sau ở chế độ chụp: nấc đầu mở trang EV, sau đó mỗi nấc ⅓ EV; UP/DOWN chuyển sang ISO.
+- Chụp cùng cảnh ở từng profile: `python3 research/shot_check.py build/<bản-đã-flash>.upd tests/shots/L*.JPG`
+  (cần rawpy) phải báo "flashed look" cho ảnh sRGB và Adobe RGB.
+
+**Khi có sự cố:** rút pin (không gạt công tắc, không rút thẻ), bật lại, đặt Compression về JPG fine, rồi
+flash file gốc từ thẻ cứu.
+
 ## Ma trận màu (GAMMA + 0x1D0) — đã thử trên máy
 
 **Thử trên máy 2026-11-17** (`bwtest.upd`, `68534e37…`, M8 chạy 2.014, ISO 160, 1/60 s): JPG sRGB
