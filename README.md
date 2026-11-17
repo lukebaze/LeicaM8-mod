@@ -1,5 +1,7 @@
 # LeicaM8
 
+[English](README.en.md)
+
 Màu JPG tuỳ biến (Portra, Kodachrome…) cho Leica M8, firmware 2.014, bằng cách sửa `LUTS/GAMMA`
 (đường cong tone + ma trận màu). Không đụng `PXA`, nên không chạm bootloader/updater.
 
