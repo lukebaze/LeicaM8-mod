@@ -47,6 +47,7 @@ Thử trên một máy M8 (firmware 2.014), 2026-11-17/18.
 | Dial sau: EV, UP/DOWN → ISO | ✅ từng phần trên máy (gasdevmco), ⏳ bản này | tổ hợp bộ chọn + dial: `m8_evtest` của gasdevmco 260/0 |
 | Bộ chọn picture profile, look `.LUT` trên thẻ | ✅ bộ chọn trên máy (gasdevmco, đường cong), ⏳ màu | `TRIX400.LUT` (các hàng ma trận bằng nhau) quyết định GAMMA gửi lại có mang cả ma trận không |
 | User profile | ✅ trên máy | lưu được profile 1–3; 0 là mặc định gốc, dựng lại mỗi lần bật máy |
+| Highlight CCD bị clip vẫn trung tính | ✅ trên máy | `research/matrix_bench.py`: 144k px clip trong RAW, chroma JPG trung vị 0, p95 4–9 mức |
 
 ### Ảnh mẫu (JPG từ máy, sáng âm u, 2026-11-18)
 
@@ -145,7 +146,9 @@ Blackfin dùng các ma trận này, #14/#15 là sRGB Standard, và map không gi
 - Chỉ số = 10·không gian màu + 2·bão hoà + biến thể. Không gian 1 = sRGB (định thức lớn nhất; 0/2 đoán
   Adobe/ECI theo thứ tự hàng đường cong). Bão hoà 0..4 = Low..High (định thức tăng đơn điệu).
 - Biến thể B: ở mức Standard đúng bằng biến thể A với cột G và B của **hàng đỏ** đổi chỗ (#14/#15); các mức
-  khác lệch thêm. Ý nghĩa chưa rõ, nên build biến đổi từng ma trận riêng, không giả định quan hệ A/B.
+  khác lệch thêm. **Trên máy: Saturation Standard dùng biến thể B** — ma trận khôi phục từ ảnh Adobe RGB
+  (`research/matrix_bench.py`, 243k px có màu) cách B 0,26, cách A 1,16; ảnh ECI cũng nghiêng về B (0,98 so
+  với 1,61). Chưa rõ khi nào dùng A, nên build vẫn biến đổi cả hai.
 - #14 (sRGB Standard) gần nhất với ma trận cam→sRGB tính từ hệ số M8 của dcraw/Adobe.
 
 ## Nghiên cứu look (`research/film_fit.py`)

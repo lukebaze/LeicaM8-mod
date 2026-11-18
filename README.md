@@ -47,6 +47,7 @@ Tested on one M8 (firmware 2.014), 2026-11-17/18.
 | Rear dial: EV, UP/DOWN → ISO | ✅ pieces on camera (gasdevmco), ⏳ this build | picker + dial combination: gasdevmco `m8_evtest` 260/0 |
 | Picture-profile picker, `.LUT` card looks | ✅ picker on camera (gasdevmco, curves), ⏳ colour | `TRIX400.LUT` (all-equal matrix rows) decides whether a re-sent GAMMA also carries the matrices |
 | User profiles | ✅ camera | profiles 1–3 saveable; 0 is the factory default, rebuilt at every power-on |
+| Clipped CCD highlights stay neutral | ✅ camera | `research/matrix_bench.py`: 144k RAW-clipped px, JPG chroma median 0, p95 4–9 levels |
 
 ### Sample shots (camera JPGs, overcast morning, 2026-11-18)
 
@@ -148,8 +149,9 @@ in colour. So the Blackfin uses these matrices, #14/#15 is sRGB Standard, and th
   Adobe/ECI, matching the tone-curve row order). Saturation 0..4 = Low..High (determinant rises
   monotonically).
 - Variant B: at Standard it is exactly variant A with the G and B coefficients of the **red row** swapped
-  (#14/#15); the other steps differ further. Meaning unknown, so builds transform every matrix on its
-  own and assume nothing about A/B.
+  (#14/#15); the other steps differ further. **Camera: Saturation Standard uses variant B** — the matrix
+  recovered from Adobe RGB shots (`research/matrix_bench.py`, 243k coloured px) is 0.26 from B, 1.16 from
+  A; ECI shots lean the same way (0.98 vs 1.61). What selects A is unknown, so builds transform both.
 - #14 (sRGB Standard) is the closest to the camera→sRGB matrix derived from dcraw/Adobe's M8
   coefficients.
 
