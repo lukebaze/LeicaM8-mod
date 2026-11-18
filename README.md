@@ -40,7 +40,7 @@ Tested on one M8 (firmware 2.014), 2026-11-17/18.
 | Kodachrome 64 (Colour space sRGB) | ✅ camera | JPG predicted from its own 14-bit RAW: flashed table ΔE00 3.5, Leica's table 6.9 |
 | Portra 160 on Endura (Adobe RGB) | ✅ camera | prediction 4.4 levels with the flashed table vs 15.7 with Leica's; Adobe RGB (1998) ICC embedded |
 | Leica stock (ECI RGB) | ✅ unchanged | ECI slot byte-identical to stock; ECI-RGB.icc embedded |
-| Black & white (ECI, Saturation Low) | ⏳ to shoot | same matrix mechanism as `bw-test` |
+| Black & white (ECI, Saturation Low) | ✅ camera | 2026-11-18, L…367: ECI-RGB.icc, Saturation Low, R = G = B in every pixel |
 | 14-bit DNG (`.RAW`, 21,049,052 bytes) | ✅ camera | 5/5 pairs: AsShotNeutral == JPG, 18/18 MakerNote tags == JPG (gasdevmco `m8_metacheck`) |
 | JPG fine+RAW kept through power cycles | ✅ camera | gasdevmco patch; every shot since gave JPG + RAW |
 | `--raw-default` (factory default JPG fine+RAW) | ✅ emulator, ⏳ camera | `research/settings_emutest.py` 24/24 on the camera's own settings code |

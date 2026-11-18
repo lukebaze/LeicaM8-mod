@@ -40,7 +40,7 @@ Thử trên một máy M8 (firmware 2.014), 2026-11-17/18.
 | Kodachrome 64 (Color space sRGB) | ✅ trên máy | dựng lại JPG từ RAW 14-bit của chính nó: bảng đã flash ΔE00 3.5, bảng Leica 6.9 |
 | Portra 160 in Endura (Adobe RGB) | ✅ trên máy | lệch 4,4 mức với bảng đã flash so với 15,7 với bảng Leica; có nhúng ICC Adobe RGB (1998) |
 | Leica gốc (ECI RGB) | ✅ không đổi | slot ECI giống gốc từng byte; có nhúng ECI-RGB.icc |
-| Đen trắng (ECI, Saturation Low) | ⏳ chưa chụp | cùng cơ chế ma trận với `bw-test` |
+| Đen trắng (ECI, Saturation Low) | ✅ trên máy | 2026-11-18, L…367: ECI-RGB.icc, Saturation Low, R = G = B ở mọi pixel |
 | DNG 14-bit (`.RAW`, 21.049.052 byte) | ✅ trên máy | 5/5 cặp: AsShotNeutral == JPG, 18/18 thẻ MakerNote == JPG (`m8_metacheck` của gasdevmco) |
 | JPG fine+RAW giữ qua tắt/bật máy | ✅ trên máy | patch của gasdevmco; mọi ảnh từ đó đều ra JPG + RAW |
 | `--raw-default` (mặc định JPG fine+RAW) | ✅ giả lập, ⏳ trên máy | `research/settings_emutest.py` 24/24 trên chính code cài đặt của máy |
