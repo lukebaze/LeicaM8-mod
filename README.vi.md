@@ -242,7 +242,12 @@ Noise = độ khuếch đại so với Leica gốc. Chroma IR là **giả địn
 nên dùng filter UV/IR. Giới hạn của ma trận 3×3: vàng/xanh dương Kodachrome nhạt hơn mô phỏng
 (vàng film 244,220,84 → M8 222,209,110).
 
-<p align="center"><img src="docs/curves.png" alt="Đường cong tone: dải xám từ -7 đến +2.5 EV qua Leica gốc, Kodachrome 64 và Portra 160; look film có vùng tối sâu hơn và gặp nhau ở mid-grey" width="80%"></p>
+<p align="center"><img src="docs/curves_measured.png" alt="Đường cong tone đo trên máy: pixel trung tính của các cặp RAW và JPG (chấm) chồng lên đường cong đã build cho Kodachrome 64, Portra 160, Provia 100F nạp từ thẻ và Leica gốc; chấm nằm trên đường" width="80%"></p>
+
+**Đo trên máy** (`research/curve_bench.py`): mọi hàng ma trận cộng bằng 1, nên pixel trung tính trong RAW
+đi thẳng vào đường cong và giá trị JPG của nó chính là đường cong. 15 cặp RAW+JPG (2026-11-17/18) vẽ lại
+từng đường cong từ −6,5 đến +2,4 EV, lệch trung vị **1–3 mức** so với bản build (Kodachrome 2.7, Portra 2.3,
+Provia nạp từ thẻ 1.8, Leica gốc 1.1); mức RAW đi thẳng vào đường cong (hệ số phơi sáng fit 1.005–1.025).
 
 Ảnh: `python3 docs/make_images.py` render từ chính file `.upd` đã build (đọc lại ma trận + đường cong
 trong file); không vẽ tay.

@@ -248,7 +248,13 @@ Noise = gain relative to Leica stock. IR chroma is an **assumption** (NIR leaks 
 G); a UV/IR filter is still recommended. 3×3 matrix limit: Kodachrome yellows/blues come out lighter
 than the simulation (film yellow 244,220,84 → M8 222,209,110).
 
-<p align="center"><img src="docs/curves.png" alt="Tone curves: grey ramp from -7 to +2.5 EV through Leica stock, Kodachrome 64 and Portra 160; the film looks have deeper shadows and meet at mid-grey" width="80%"></p>
+<p align="center"><img src="docs/curves_measured.png" alt="Tone curves measured on the camera: neutral pixels of RAW and JPG pairs as dots on top of the built curves for Kodachrome 64, Portra 160, Provia 100F from the card and Leica stock; dots sit on their lines" width="80%"></p>
+
+**Measured on the camera** (`research/curve_bench.py`): every matrix row sums to 1, so a pixel that is
+neutral in the RAW reaches the curve unchanged and its JPG value is the curve itself. 15 RAW+JPG pairs
+(2026-11-17/18) trace each curve from −6.5 to +2.4 EV within a median **1–3 levels** of the built one
+(Kodachrome 2.7, Portra 2.3, Provia from the card 1.8, Leica stock 1.1); the raw level goes straight into
+the curve (fitted exposure scale 1.005–1.025).
 
 Images: `python3 docs/make_images.py` renders them from the built `.upd` (matrices + curves read back
 from the file); nothing is painted by hand.
