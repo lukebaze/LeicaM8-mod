@@ -48,6 +48,22 @@ Tested on one M8 (firmware 2.014), 2026-11-17/18.
 | Picture-profile picker, `.LUT` card looks | ✅ picker on camera (gasdevmco, curves), ⏳ colour | `TRIX400.LUT` (all-equal matrix rows) decides whether a re-sent GAMMA also carries the matrices |
 | User profiles | ✅ camera | profiles 1–3 saveable; 0 is the factory default, rebuilt at every power-on |
 
+### Sample shots (camera JPGs, overcast morning, 2026-11-18)
+
+Straight out of the camera, resized, EXIF stripped; Adobe/ECI converted to sRGB for display.
+
+<p align="center">
+  <img src="docs/samples/kodachrome64-sidewalk.jpg" alt="Sidewalk with trees and apartment towers, Kodachrome 64 look" width="49%">
+  <img src="docs/samples/kodachrome64-street.jpg" alt="Street with a red car and parked scooters, Kodachrome 64 look" width="49%">
+</p>
+<p align="center">
+  <img src="docs/samples/provia100f-card-look.jpg" alt="Street with parked cars and trees, Provia 100F card look" width="32%">
+  <img src="docs/samples/bw-eci-saturation-low.jpg" alt="Street with parked cars, black and white, overexposed by one stop" width="32%">
+</p>
+
+Top: Kodachrome 64 (sRGB, profile 0). Bottom: Provia 100F loaded from the card (`PROVIA.LUT`), and black &
+white (ECI, Saturation Low, shot at +1 EV so it is bright). Portra samples to follow.
+
 Known limits: one 3×3 matrix + one curve per slot (Kodachrome yellows/blues lighter than the
 simulation); looks are in the JPG only; card looks last until power-off; Adobe/ECI JPGs need
 colour-managed viewing.

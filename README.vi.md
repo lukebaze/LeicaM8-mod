@@ -48,6 +48,22 @@ Thử trên một máy M8 (firmware 2.014), 2026-11-17/18.
 | Bộ chọn picture profile, look `.LUT` trên thẻ | ✅ bộ chọn trên máy (gasdevmco, đường cong), ⏳ màu | `TRIX400.LUT` (các hàng ma trận bằng nhau) quyết định GAMMA gửi lại có mang cả ma trận không |
 | User profile | ✅ trên máy | lưu được profile 1–3; 0 là mặc định gốc, dựng lại mỗi lần bật máy |
 
+### Ảnh mẫu (JPG từ máy, sáng âm u, 2026-11-18)
+
+Lấy thẳng từ máy, thu nhỏ, xoá EXIF; ảnh Adobe/ECI convert sang sRGB để hiển thị.
+
+<p align="center">
+  <img src="docs/samples/kodachrome64-sidewalk.jpg" alt="Vỉa hè với cây và chung cư, look Kodachrome 64" width="49%">
+  <img src="docs/samples/kodachrome64-street.jpg" alt="Đường phố có xe đỏ và xe máy đỗ, look Kodachrome 64" width="49%">
+</p>
+<p align="center">
+  <img src="docs/samples/provia100f-card-look.jpg" alt="Đường phố có ô tô đỗ và cây, look Provia 100F nạp từ thẻ" width="32%">
+  <img src="docs/samples/bw-eci-saturation-low.jpg" alt="Đường phố có ô tô đỗ, đen trắng, sáng hơn 1 stop" width="32%">
+</p>
+
+Trên: Kodachrome 64 (sRGB, profile 0). Dưới: Provia 100F nạp từ thẻ (`PROVIA.LUT`), và đen trắng (ECI,
+Saturation Low, chụp ở +1 EV nên sáng). Ảnh Portra sẽ bổ sung sau.
+
 Giới hạn đã biết: mỗi slot một ma trận 3×3 + một đường cong (vàng/xanh dương Kodachrome nhạt hơn mô
 phỏng); look chỉ có trong JPG; look trên thẻ mất khi tắt máy; JPG Adobe/ECI cần app có quản lý màu.
 
