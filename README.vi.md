@@ -147,8 +147,8 @@ Blackfin dùng các ma trận này, #14/#15 là sRGB Standard, và map không gi
 - Chỉ số = 10·không gian màu + 2·bão hoà + biến thể. Không gian 1 = sRGB (định thức lớn nhất; 0/2 đoán
   Adobe/ECI theo thứ tự hàng đường cong). Bão hoà 0..4 = Low..High (định thức tăng đơn điệu).
 - Biến thể B: ở mức Standard đúng bằng biến thể A với cột G và B của **hàng đỏ** đổi chỗ (#14/#15); các mức
-  khác lệch thêm. **Trên máy: Saturation Standard dùng biến thể B** — ma trận khôi phục từ ảnh Adobe RGB
-  khôi phục từ cặp RAW+JPG (`research/matrix_bench.py`) cách B 0,22, cách A 1,12 ở Adobe RGB (486k px có màu)
+  khác lệch thêm. **Trên máy: Saturation Standard dùng biến thể B** — ma trận khôi phục từ cặp RAW+JPG
+  (`research/matrix_bench.py`) cách B 0,22, cách A 1,12 ở Adobe RGB (486k px có màu)
   và 0,28 so với 1,12 ở ECI RGB (433k px). Chưa rõ khi nào dùng A, nên build vẫn biến đổi cả hai.
 - #14 (sRGB Standard) gần nhất với ma trận cam→sRGB tính từ hệ số M8 của dcraw/Adobe.
 
