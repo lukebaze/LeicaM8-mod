@@ -43,7 +43,7 @@ Thử trên một máy M8 (firmware 2.014), 2026-11-17/18.
 | Đen trắng (ECI, Saturation Low) | ✅ trên máy | 2026-11-18, L…367: ECI-RGB.icc, Saturation Low, R = G = B ở mọi pixel |
 | DNG 14-bit (`.RAW`, 21.049.052 byte) | ✅ trên máy | 5/5 cặp: AsShotNeutral == JPG, 18/18 thẻ MakerNote == JPG (`m8_metacheck` của gasdevmco) |
 | JPG fine+RAW giữ qua tắt/bật máy | ✅ trên máy | patch của gasdevmco; mọi ảnh từ đó đều ra JPG + RAW |
-| `--raw-default` (mặc định JPG fine+RAW) | ✅ giả lập, ⏳ trên máy | `research/settings_emutest.py` 24/24 trên chính code cài đặt của máy |
+| `--raw-default` (mặc định JPG fine+RAW), `--ev-default -1` (−⅓ EV) | ✅ giả lập, ⏳ trên máy | `research/settings_emutest.py --ev -1` 24/24 trên chính code cài đặt của máy: chỉ trường compression và EV đổi |
 | Dial sau: EV, UP/DOWN → ISO | ✅ từng phần trên máy (gasdevmco), ⏳ bản này | tổ hợp bộ chọn + dial: `m8_evtest` của gasdevmco 260/0 |
 | Bộ chọn picture profile, look `.LUT` trên thẻ | ✅ bộ chọn trên máy (gasdevmco, đường cong), ⏳ màu | `TRIX400.LUT` (các hàng ma trận bằng nhau) quyết định GAMMA gửi lại có mang cả ma trận không |
 | User profile | ✅ trên máy | lưu được profile 1–3; 0 là mặc định gốc, dựng lại mỗi lần bật máy |
@@ -78,14 +78,14 @@ phỏng); look chỉ có trong JPG; look trên thẻ mất khi tắt máy; JPG A
 ## Cài đặt trên máy
 
 Bản khuyên dùng: `--base` file `dng --meta --profiles --dial-ev --iso` của gasdevmco (`cf965505…`; bộ chọn + dial EV/ISO, từng phần gasdevmco đã thử trên máy, tổ hợp chạy giả lập: m8_evtest 260/0),
-`--srgb SFL_Kodachrome_64 --adobe SFL_Portra_160_Endura --bw eci --raw-default`, cộng các look trên thẻ
+`--srgb SFL_Kodachrome_64 --adobe SFL_Portra_160_Endura --bw eci --raw-default --ev-default -1`, cộng các look trên thẻ
 (`build/PROFILES`, xem *Thêm look từ thẻ*). Các slot màu và DNG 14-bit đã kiểm trên máy (2026-11-17, trên
 base `--dial-ev`; phần PXA của base này gasdevmco đã thử đúng file đó trên máy).
 
 ```sh
 python3 tools/m8lut.py build --base firmware/dng/m8-2_014-dng-profiles-dial-iso.upd \
-    --srgb SFL_Kodachrome_64 --adobe SFL_Portra_160_Endura --bw eci --raw-default \
-    --out m8-2_014-dng14-picker-dialiso-kodachrome-portra-bw-raw.upd
+    --srgb SFL_Kodachrome_64 --adobe SFL_Portra_160_Endura --bw eci --raw-default --ev-default -1 \
+    --out m8-2_014-dng14-picker-dialiso-kodachrome-portra-bw-raw-ev-1.upd
 ```
 
 **1. Flash** (theo quy trình Leica)
@@ -103,15 +103,27 @@ Cập nhật firmware reset mọi cài đặt, nên cài lại profile sau mỗi
 **2. User profile** (MENU → *Save User Profile*). Chỉ **lưu được profile 1–3**; profile 0 là mặc định
 gốc, máy dựng lại mỗi lần bật.
 
-| Profile | Color Management | Saturation | Contrast | Compression | Look JPG |
-|---|---|---|---|---|---|
-| 0 (mặc định, không lưu được) | sRGB | Standard | Standard | JPG fine+RAW | Kodachrome 64 |
-| 1 | Adobe RGB | Standard | Standard | JPG fine+RAW | Portra 160 |
-| 2 | ECI RGB | Standard | Standard | JPG fine+RAW | Leica gốc |
-| 3 | ECI RGB | **Low** | Standard | JPG fine+RAW | Đen trắng (tone Leica) |
+| Profile | Color Management | Saturation | Contrast | EV | ISO | WB | Dùng cho |
+|---|---|---|---|---|---|---|---|
+| 0 (mặc định, không lưu được) | sRGB | Standard | Standard | −⅓ (`--ev-default -1`) | 160 | Auto | **Kodachrome 64**, ngoài trời |
+| 1 | Adobe RGB | Standard | **Medium Low** | **+⅔** | ≤ **640** | Auto; **Fluorescent** hoặc chỉnh tay dưới đèn văn phòng | **Portra 160**, chân dung, trong nhà |
+| 2 | ECI RGB | Standard | Standard | 0 | tuỳ cảnh | Auto | Leica gốc |
+| 3 | ECI RGB | **Low** | **Medium High** | 0 | tuỳ cảnh | Auto | Đen trắng, tone đậm kiểu Tri-X |
 
-- Profile 0 không cấu hình được; với `--raw-default`, mặc định của nó (sRGB, Standard, JPG fine+RAW)
-  chính là cài đặt Kodachrome nên không cần lưu.
+Tất cả ở JPG fine+RAW. Lý do, từ ảnh thử trên máy (2026-11-17/18, `tests/shots`, 27 cặp):
+
+- **Profile 0 −⅓ EV**: ảnh đường phố trời âm u có nhiều trời bị cháy 14–23% khung hình *ngay trong RAW*
+  (trung vị cảnh gấp 2–3 lần mid-grey). Profile 0 dựng lại mỗi lần bật máy nên EV chỉ đặt được trong firmware;
+  khi trời chiếm nhiều khung thì xoay dial xuống thêm (−⅔).
+- **Portra +⅔ EV, Contrast Medium Low**: ảnh Portra trong nhà tối hơn mid-grey ~1,6 stop, 12–15% pixel gần đen;
+  đường cong Portra có vùng tối sâu hơn Leica.
+- **WB trong nhà**: dưới đèn LED/huỳnh quang văn phòng, Auto WB để vùng xám ám xanh lá (a\* −3…−6) ở cả Portra
+  *và* Leica gốc, nên là AWB của máy, không phải look. Ảnh ngoài trời trung tính (a\*/b\* ≈ −1/+1).
+- **ISO ≤ 640**: CCD M8 nhiễu nhiều ở 1250; look không tăng noise nhưng không che được.
+- **Đen trắng ở EV 0**: tấm thử ở +1 EV cháy 53% khung hình; ở EV 0 không cháy, không bệt.
+
+- Profile 0 không cấu hình được; với `--raw-default --ev-default -1`, mặc định của nó (sRGB, Standard,
+  JPG fine+RAW, −⅓ EV) chính là cài đặt Kodachrome.
 - Các mức Saturation/Contrast khác vẫn hoạt động, chồng lên từng look.
 - JPG Adobe RGB và ECI RGB có nhúng ICC: xem/xuất bằng app có quản lý màu (Lightroom, Photos, trình duyệt);
   convert sang sRGB trước khi đăng lên app bỏ qua ICC.

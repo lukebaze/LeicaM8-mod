@@ -43,7 +43,7 @@ Tested on one M8 (firmware 2.014), 2026-11-17/18.
 | Black & white (ECI, Saturation Low) | ✅ camera | 2026-11-18, L…367: ECI-RGB.icc, Saturation Low, R = G = B in every pixel |
 | 14-bit DNG (`.RAW`, 21,049,052 bytes) | ✅ camera | 5/5 pairs: AsShotNeutral == JPG, 18/18 MakerNote tags == JPG (gasdevmco `m8_metacheck`) |
 | JPG fine+RAW kept through power cycles | ✅ camera | gasdevmco patch; every shot since gave JPG + RAW |
-| `--raw-default` (factory default JPG fine+RAW) | ✅ emulator, ⏳ camera | `research/settings_emutest.py` 24/24 on the camera's own settings code |
+| `--raw-default` (factory default JPG fine+RAW), `--ev-default -1` (−⅓ EV) | ✅ emulator, ⏳ camera | `research/settings_emutest.py --ev -1` 24/24 on the camera's own settings code: only the compression and EV fields change |
 | Rear dial: EV, UP/DOWN → ISO | ✅ pieces on camera (gasdevmco), ⏳ this build | picker + dial combination: gasdevmco `m8_evtest` 260/0 |
 | Picture-profile picker, `.LUT` card looks | ✅ picker on camera (gasdevmco, curves), ⏳ colour | `TRIX400.LUT` (all-equal matrix rows) decides whether a re-sent GAMMA also carries the matrices |
 | User profiles | ✅ camera | profiles 1–3 saveable; 0 is the factory default, rebuilt at every power-on |
@@ -79,15 +79,15 @@ colour-managed viewing.
 ## Setup on the camera
 
 Recommended build: `--base` gasdevmco's `dng --meta --profiles --dial-ev --iso` file (`cf965505…`; picker + dial EV/ISO, all pieces camera-tested by gasdevmco, the combination emulator-tested: m8_evtest 260/0),
-`--srgb SFL_Kodachrome_64 --adobe SFL_Portra_160_Endura --bw eci --raw-default`, plus the card looks
+`--srgb SFL_Kodachrome_64 --adobe SFL_Portra_160_Endura --bw eci --raw-default --ev-default -1`, plus the card looks
 (`build/PROFILES`, see *More looks from the card*). The colour slots and the 14-bit DNG are
 camera-checked (2026-11-17, on the `--dial-ev` base; the PXA pieces of this base were camera-tested
 by gasdevmco as this exact file).
 
 ```sh
 python3 tools/m8lut.py build --base firmware/dng/m8-2_014-dng-profiles-dial-iso.upd \
-    --srgb SFL_Kodachrome_64 --adobe SFL_Portra_160_Endura --bw eci --raw-default \
-    --out m8-2_014-dng14-picker-dialiso-kodachrome-portra-bw-raw.upd
+    --srgb SFL_Kodachrome_64 --adobe SFL_Portra_160_Endura --bw eci --raw-default --ev-default -1 \
+    --out m8-2_014-dng14-picker-dialiso-kodachrome-portra-bw-raw-ev-1.upd
 ```
 
 **1. Flash** (Leica's procedure)
@@ -105,15 +105,27 @@ The update resets every setting, so set the profiles again after each flash.
 **2. User profiles** (MENU → *Save User Profile*). Only **profiles 1–3 can be saved**; profile 0 is
 the factory default, rebuilt at every power-on.
 
-| Profile | Color Management | Saturation | Contrast | Compression | JPG look |
-|---|---|---|---|---|---|
-| 0 (factory, not saveable) | sRGB | Standard | Standard | JPG fine+RAW | Kodachrome 64 |
-| 1 | Adobe RGB | Standard | Standard | JPG fine+RAW | Portra 160 |
-| 2 | ECI RGB | Standard | Standard | JPG fine+RAW | Leica stock |
-| 3 | ECI RGB | **Low** | Standard | JPG fine+RAW | Black & white (Leica tone) |
+| Profile | Color Management | Saturation | Contrast | EV | ISO | WB | Use |
+|---|---|---|---|---|---|---|---|
+| 0 (factory, not saveable) | sRGB | Standard | Standard | −⅓ (`--ev-default -1`) | 160 | Auto | **Kodachrome 64**, daylight |
+| 1 | Adobe RGB | Standard | **Medium Low** | **+⅔** | ≤ **640** | Auto; **Fluorescent** or manual under office light | **Portra 160**, people, indoor |
+| 2 | ECI RGB | Standard | Standard | 0 | as needed | Auto | Leica stock |
+| 3 | ECI RGB | **Low** | **Medium High** | 0 | as needed | Auto | Black & white, Tri-X-like punch |
 
-- Profile 0 can't be configured; with `--raw-default` its defaults (sRGB, Standard, JPG fine+RAW)
-  already are the Kodachrome setup, so it needs no saving.
+All in JPG fine+RAW. Why, from the camera tests (2026-11-17/18, `tests/shots`, 27 pairs):
+
+- **Profile 0 −⅓ EV**: overcast street shots with sky in the frame clipped 14–23 % of the frame *in the
+  RAW* (scene median 2–3× mid-grey). Profile 0 is rebuilt at every power-on, so its EV can only be set
+  in firmware; dial further down (−⅔) when the sky is large.
+- **Portra +⅔ EV, Contrast Medium Low**: indoor Portra shots were ~1.6 stops under mid-grey with 12–15 %
+  of pixels near black; Portra's curve has deeper shadows than Leica's.
+- **WB indoors**: under office LED/fluorescent light Auto WB left greys green (a\* −3…−6) in Portra *and*
+  Leica stock, so it is the camera's AWB, not the look. Daylight shots were neutral (a\*/b\* ≈ −1/+1).
+- **ISO ≤ 640**: the M8 CCD is noisy at 1250; the looks add no noise gain but can't hide it.
+- **B&W at EV 0**: the +1 EV test shot clipped 53 % of the frame; at 0 EV nothing clipped or crushed.
+
+- Profile 0 can't be configured; with `--raw-default --ev-default -1` its defaults (sRGB, Standard,
+  JPG fine+RAW, −⅓ EV) already are the Kodachrome setup.
 - Other Saturation/Contrast steps keep working on top of each look.
 - Adobe RGB and ECI RGB JPGs carry their ICC profile: view or export them in colour-managed apps
   (Lightroom, Photos, browsers); convert to sRGB before posting to apps that ignore ICC.

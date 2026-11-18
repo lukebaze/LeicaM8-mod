@@ -220,6 +220,16 @@ def main():
             assert d[po + 0xFF4:po + 0xFF8] == bytes.fromhex('bce2c0e1'), 'unexpected instruction at 0x20FF4'
             patches[po + 0xFF4] = bytes.fromhex('bc72c0e1')
             print('PXA   0x20FF4: factory default Compression = JPG fine+RAW')
+        if opt('--ev-default') is not None:
+            # Same template: `mov r2, #9` at 0x20FE0 is the default exposure compensation (+0x22, index
+            # 0..18 = -3..+3 EV in 1/3 steps, 9 = 0 EV); r2 is used only by `strh r2, [r0, #0x22]` at 0x21044.
+            # --ev-default T sets T thirds of a stop (e.g. -1 = -1/3 EV) for reset records and profile 0.
+            t = int(opt('--ev-default'))
+            assert -9 <= t <= 9, '--ev-default takes thirds of a stop, -9..9'
+            po, _ = wad(d)['PXA']
+            assert d[po + 0xFE0:po + 0xFE4] == bytes.fromhex('0920a0e3'), 'unexpected instruction at 0x20FE0'
+            patches[po + 0xFE0] = bytes([9 + t]) + bytes.fromhex('20a0e3')
+            print(f'PXA   0x20FE0: factory default exposure compensation = {t:+d}/3 EV')
         dng = '-dng' if base != STOCK else ''
         write(d, patches, opt('--out') or f'm8-2_014{dng}-' + '-'.join(f'{s}_{n.lower()}' for s, n in looks.items()) + '.upd', base)
     elif cmd == 'lut':
