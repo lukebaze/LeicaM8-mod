@@ -24,9 +24,9 @@ SHOTS = os.path.join(ROOT, 'tests', 'shots')
 stock, g = m8lut.load(); fl, _ = m8lut.load(flashed, False)
 LOOKS = [  # (label, shots, table bytes, offset, space, colour) -- shots identified by research/look_id.py
     ('KODACHROME 64', [371, 374, 375, 376, 378, 379, 381], fl, g, 1, (176, 46, 32)),
-    ('PORTRA 160', [365, 366, 383], fl, g, 0, (205, 128, 40)),
+    ('PORTRA 160', [365, 366, 383, 384, 385, 386], fl, g, 0, (205, 128, 40)),
     ('PROVIA 100F (card)', [369, 370], open(os.path.join(pdir, 'PROVIA.LUT'), 'rb').read(), 0, 1, (40, 110, 170)),
-    ('LEICA M8 STOCK (ECI)', [364, 367], stock, g, 2, (120, 112, 104)),
+    ('LEICA M8 STOCK (ECI)', [364, 367, 387, 388, 389, 390], stock, g, 2, (120, 112, 104)),
 ]
 _, e1 = m8lut.space_tools(1)
 dec = lambda v: np.where(v <= 0.04045, v / 12.92, ((v + 0.055) / 1.055) ** 2.4)

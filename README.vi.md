@@ -58,12 +58,13 @@ Lấy thẳng từ máy, thu nhỏ, xoá EXIF; ảnh Adobe/ECI convert sang sRGB
   <img src="docs/samples/kodachrome64-street.jpg" alt="Đường phố có xe đỏ và xe máy đỗ, look Kodachrome 64" width="49%">
 </p>
 <p align="center">
-  <img src="docs/samples/provia100f-card-look.jpg" alt="Đường phố có ô tô đỗ và cây, look Provia 100F nạp từ thẻ" width="32%">
-  <img src="docs/samples/bw-eci-saturation-low.jpg" alt="Đường phố có ô tô đỗ, đen trắng, sáng hơn 1 stop" width="32%">
+  <img src="docs/samples/portra160-desk.jpg" alt="Bàn làm việc có hộp cà phê và chậu cây, look Portra 160" width="49%">
+  <img src="docs/samples/provia100f-card-look.jpg" alt="Đường phố có ô tô đỗ và cây, look Provia 100F nạp từ thẻ" width="24%">
+  <img src="docs/samples/bw-eci-saturation-low.jpg" alt="Văn phòng có laptop và chậu cây, đen trắng" width="49%">
 </p>
 
-Trên: Kodachrome 64 (sRGB, profile 0). Dưới: Provia 100F nạp từ thẻ (`PROVIA.LUT`), và đen trắng (ECI,
-Saturation Low, chụp ở +1 EV nên sáng). Ảnh Portra sẽ bổ sung sau.
+Trên: Kodachrome 64 (sRGB, profile 0). Giữa: Portra 160 (Adobe RGB, trong nhà) và Provia 100F nạp từ thẻ
+(`PROVIA.LUT`). Dưới: đen trắng (ECI, Saturation Low).
 
 Giới hạn đã biết: mỗi slot một ma trận 3×3 + một đường cong (vàng/xanh dương Kodachrome nhạt hơn mô
 phỏng); look chỉ có trong JPG; look trên thẻ mất khi tắt máy; JPG Adobe/ECI cần app có quản lý màu.
@@ -147,8 +148,8 @@ Blackfin dùng các ma trận này, #14/#15 là sRGB Standard, và map không gi
   Adobe/ECI theo thứ tự hàng đường cong). Bão hoà 0..4 = Low..High (định thức tăng đơn điệu).
 - Biến thể B: ở mức Standard đúng bằng biến thể A với cột G và B của **hàng đỏ** đổi chỗ (#14/#15); các mức
   khác lệch thêm. **Trên máy: Saturation Standard dùng biến thể B** — ma trận khôi phục từ ảnh Adobe RGB
-  (`research/matrix_bench.py`, 243k px có màu) cách B 0,26, cách A 1,16; ảnh ECI cũng nghiêng về B (0,98 so
-  với 1,61). Chưa rõ khi nào dùng A, nên build vẫn biến đổi cả hai.
+  khôi phục từ cặp RAW+JPG (`research/matrix_bench.py`) cách B 0,22, cách A 1,12 ở Adobe RGB (486k px có màu)
+  và 0,28 so với 1,12 ở ECI RGB (433k px). Chưa rõ khi nào dùng A, nên build vẫn biến đổi cả hai.
 - #14 (sRGB Standard) gần nhất với ma trận cam→sRGB tính từ hệ số M8 của dcraw/Adobe.
 
 ## Nghiên cứu look (`research/film_fit.py`)
@@ -248,9 +249,9 @@ nên dùng filter UV/IR. Giới hạn của ma trận 3×3: vàng/xanh dương K
 <p align="center"><img src="docs/curves_measured.png" alt="Đường cong tone đo trên máy: pixel trung tính của các cặp RAW và JPG (chấm) chồng lên đường cong đã build cho Kodachrome 64, Portra 160, Provia 100F nạp từ thẻ và Leica gốc; chấm nằm trên đường" width="80%"></p>
 
 **Đo trên máy** (`research/curve_bench.py`): mọi hàng ma trận cộng bằng 1, nên pixel trung tính trong RAW
-đi thẳng vào đường cong và giá trị JPG của nó chính là đường cong. 15 cặp RAW+JPG (2026-11-17/18) vẽ lại
-từng đường cong từ −6,5 đến +2,4 EV, lệch trung vị **1–3 mức** so với bản build (Kodachrome 2.7, Portra 2.3,
-Provia nạp từ thẻ 1.8, Leica gốc 1.1); mức RAW đi thẳng vào đường cong (hệ số phơi sáng fit 1.005–1.025).
+đi thẳng vào đường cong và giá trị JPG của nó chính là đường cong. 21 cặp RAW+JPG (2026-11-17/18) vẽ lại
+từng đường cong từ −6,5 đến +2,4 EV, lệch trung vị **1–3 mức** so với bản build (Kodachrome 2.7, Portra 2.4,
+Provia nạp từ thẻ 1.8, Leica gốc 1.7); mức RAW đi thẳng vào đường cong (hệ số phơi sáng fit 1.000–1.025).
 
 Ảnh: `python3 docs/make_images.py` render từ chính file `.upd` đã build (đọc lại ma trận + đường cong
 trong file); không vẽ tay.

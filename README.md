@@ -58,12 +58,13 @@ Straight out of the camera, resized, EXIF stripped; Adobe/ECI converted to sRGB 
   <img src="docs/samples/kodachrome64-street.jpg" alt="Street with a red car and parked scooters, Kodachrome 64 look" width="49%">
 </p>
 <p align="center">
-  <img src="docs/samples/provia100f-card-look.jpg" alt="Street with parked cars and trees, Provia 100F card look" width="32%">
-  <img src="docs/samples/bw-eci-saturation-low.jpg" alt="Street with parked cars, black and white, overexposed by one stop" width="32%">
+  <img src="docs/samples/portra160-desk.jpg" alt="Desk with a coffee box and a plant, Portra 160 look" width="49%">
+  <img src="docs/samples/provia100f-card-look.jpg" alt="Street with parked cars and trees, Provia 100F card look" width="24%">
+  <img src="docs/samples/bw-eci-saturation-low.jpg" alt="Office with a laptop and a plant, black and white" width="49%">
 </p>
 
-Top: Kodachrome 64 (sRGB, profile 0). Bottom: Provia 100F loaded from the card (`PROVIA.LUT`), and black &
-white (ECI, Saturation Low, shot at +1 EV so it is bright). Portra samples to follow.
+Top: Kodachrome 64 (sRGB, profile 0). Middle: Portra 160 (Adobe RGB, indoor) and Provia 100F loaded
+from the card (`PROVIA.LUT`). Bottom: black & white (ECI, Saturation Low).
 
 Known limits: one 3×3 matrix + one curve per slot (Kodachrome yellows/blues lighter than the
 simulation); looks are in the JPG only; card looks last until power-off; Adobe/ECI JPGs need
@@ -150,8 +151,8 @@ in colour. So the Blackfin uses these matrices, #14/#15 is sRGB Standard, and th
   monotonically).
 - Variant B: at Standard it is exactly variant A with the G and B coefficients of the **red row** swapped
   (#14/#15); the other steps differ further. **Camera: Saturation Standard uses variant B** — the matrix
-  recovered from Adobe RGB shots (`research/matrix_bench.py`, 243k coloured px) is 0.26 from B, 1.16 from
-  A; ECI shots lean the same way (0.98 vs 1.61). What selects A is unknown, so builds transform both.
+  recovered from RAW+JPG pairs (`research/matrix_bench.py`) is 0.22 from B vs 1.12 from A in Adobe RGB
+  (486k coloured px) and 0.28 vs 1.12 in ECI RGB (433k px). What selects A is unknown, so builds transform both.
 - #14 (sRGB Standard) is the closest to the camera→sRGB matrix derived from dcraw/Adobe's M8
   coefficients.
 
@@ -253,10 +254,10 @@ than the simulation (film yellow 244,220,84 → M8 222,209,110).
 <p align="center"><img src="docs/curves_measured.png" alt="Tone curves measured on the camera: neutral pixels of RAW and JPG pairs as dots on top of the built curves for Kodachrome 64, Portra 160, Provia 100F from the card and Leica stock; dots sit on their lines" width="80%"></p>
 
 **Measured on the camera** (`research/curve_bench.py`): every matrix row sums to 1, so a pixel that is
-neutral in the RAW reaches the curve unchanged and its JPG value is the curve itself. 15 RAW+JPG pairs
+neutral in the RAW reaches the curve unchanged and its JPG value is the curve itself. 21 RAW+JPG pairs
 (2026-11-17/18) trace each curve from −6.5 to +2.4 EV within a median **1–3 levels** of the built one
-(Kodachrome 2.7, Portra 2.3, Provia from the card 1.8, Leica stock 1.1); the raw level goes straight into
-the curve (fitted exposure scale 1.005–1.025).
+(Kodachrome 2.7, Portra 2.4, Provia from the card 1.8, Leica stock 1.7); the raw level goes straight into
+the curve (fitted exposure scale 1.000–1.025).
 
 Images: `python3 docs/make_images.py` renders them from the built `.upd` (matrices + curves read back
 from the file); nothing is painted by hand.

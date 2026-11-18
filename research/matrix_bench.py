@@ -28,8 +28,8 @@ for f in sorted(glob.glob(os.path.join(pdir, '*.LUT'))):
 GROUPS = [  # label, shots, space, table the curve comes from (shots identified by look_id/curve_bench)
     ('Kodachrome 64 (sRGB)', [371, 374, 375, 376, 378, 379, 381], 1, 'flashed'),
     ('Provia 100F from card (sRGB)', [369, 370], 1, 'PROVIA'),
-    ('Portra 160 (Adobe RGB)', [365, 366, 383], 0, 'flashed'),
-    ('Leica stock (ECI RGB)', [364], 2, 'stock'),
+    ('Portra 160 (Adobe RGB)', [365, 366, 383, 384, 385, 386], 0, 'flashed'),
+    ('Leica stock (ECI RGB)', [364, 388, 389, 390], 2, 'stock'),
 ]
 
 def space_of(jp):
