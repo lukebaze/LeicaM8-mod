@@ -17,9 +17,9 @@
 
 | Color space (menu máy) | Look JPG |
 |---|---|
-| sRGB | Kodachrome 64, slide xem ở D65 |
-| Adobe RGB | Portra 160 in trên Kodak Portra Endura |
-| ECI RGB | Leica gốc |
+| sRGB | Leica gốc; Saturation Low = đen trắng |
+| Adobe RGB | Kodachrome 64, slide xem ở D65 |
+| ECI RGB | Portra 160 in trên Kodak Portra Endura |
 
 Project này sửa `LUTS/GAMMA` (ma trận màu + đường cong tone) và, với `--raw-default`, một lệnh trong mẫu
 cài đặt mặc định. Base tuỳ chọn, bản DNG 14-bit của
@@ -32,7 +32,8 @@ Hai phần không chồng nhau; bootloader và updater thẻ SD giữ nguyên g�
 
 ## Đang chạy được gì
 
-Thử trên một máy M8 (firmware 2.014), 2026-11-17/18.
+Thử trên một máy M8 (firmware 2.014), 2026-11-17/18, với cách xếp cũ (Kodachrome ở sRGB, Portra ở Adobe RGB,
+đen trắng ở ECI). Cách xếp hiện tại chỉ chuyển cùng ma trận và đường cong sang slot khác: ⏳ trên máy.
 
 | Tính năng | Trạng thái | Bằng chứng |
 |---|---|---|
@@ -63,7 +64,7 @@ Lấy thẳng từ máy, thu nhỏ, xoá EXIF; ảnh Adobe/ECI convert sang sRGB
   <img src="docs/samples/bw-eci-saturation-low.jpg" alt="Văn phòng có laptop và chậu cây, đen trắng" width="49%">
 </p>
 
-Trên: Kodachrome 64 (sRGB, profile 0). Giữa: Portra 160 (Adobe RGB, trong nhà) và Provia 100F nạp từ thẻ
+Chụp với cách xếp cũ. Trên: Kodachrome 64 (khi đó ở sRGB). Giữa: Portra 160 (khi đó ở Adobe RGB, trong nhà) và Provia 100F nạp từ thẻ
 (`PROVIA.LUT`). Dưới: đen trắng (ECI, Saturation Low).
 
 Giới hạn đã biết: mỗi slot một ma trận 3×3 + một đường cong (vàng/xanh dương Kodachrome nhạt hơn mô
@@ -78,14 +79,15 @@ phỏng); look chỉ có trong JPG; look trên thẻ mất khi tắt máy; JPG A
 ## Cài đặt trên máy
 
 Bản khuyên dùng: `--base` file `dng --meta --profiles --dial-ev --iso` của gasdevmco (`cf965505…`; bộ chọn + dial EV/ISO, từng phần gasdevmco đã thử trên máy, tổ hợp chạy giả lập: m8_evtest 260/0),
-`--srgb SFL_Kodachrome_64 --adobe SFL_Portra_160_Endura --bw eci --raw-default --ev-default -1`, cộng các look trên thẻ
-(`build/PROFILES`, xem *Thêm look từ thẻ*). Các slot màu và DNG 14-bit đã kiểm trên máy (2026-11-17, trên
-base `--dial-ev`; phần PXA của base này gasdevmco đã thử đúng file đó trên máy).
+`--adobe SFL_Kodachrome_64 --eci SFL_Portra_160_Endura --bw srgb --raw-default`, cộng các look trên thẻ
+(`build/PROFILES`, xem *Thêm look từ thẻ*). Profile 0 (sRGB Standard, 0 EV) giữ màu Leica gốc. Look, đen trắng
+và DNG 14-bit đã kiểm trên máy với cách xếp cũ (2026-11-17, trên base `--dial-ev`; phần PXA của base này
+gasdevmco đã thử đúng file đó trên máy).
 
 ```sh
 python3 tools/m8lut.py build --base firmware/dng/m8-2_014-dng-profiles-dial-iso.upd \
-    --srgb SFL_Kodachrome_64 --adobe SFL_Portra_160_Endura --bw eci --raw-default --ev-default -1 \
-    --out m8-2_014-dng14-picker-dialiso-kodachrome-portra-bw-raw-ev-1.upd
+    --adobe SFL_Kodachrome_64 --eci SFL_Portra_160_Endura --bw srgb --raw-default \
+    --out m8-2_014-dng14-picker-dialiso-stock0-kodachrome-portra-bw-raw.upd
 ```
 
 **1. Flash** (theo quy trình Leica)
@@ -105,25 +107,26 @@ gốc, máy dựng lại mỗi lần bật.
 
 | Profile | Color Management | Saturation | Contrast | EV | ISO | WB | Dùng cho |
 |---|---|---|---|---|---|---|---|
-| 0 (mặc định, không lưu được) | sRGB | Standard | Standard | −⅓ (`--ev-default -1`) | 160 | Auto | **Kodachrome 64**, ngoài trời |
-| 1 | Adobe RGB | Standard | **Medium Low** | **+⅔** | ≤ **640** | Auto; **Fluorescent** hoặc chỉnh tay dưới đèn văn phòng | **Portra 160**, chân dung, trong nhà |
-| 2 | ECI RGB | Standard | Standard | 0 | tuỳ cảnh | Auto | Leica gốc |
-| 3 | ECI RGB | **Low** | **Medium High** | 0 | tuỳ cảnh | Auto | Đen trắng, tone đậm kiểu Tri-X |
+| 0 (mặc định, không lưu được) | sRGB | Standard | Standard | 0 | 160 | Auto | Leica gốc |
+| 1 | Adobe RGB | Standard | Standard | **−⅓** | **160** | **Daylight** | **Kodachrome 64**, nắng, đường phố |
+| 2 | ECI RGB | Standard | **Medium Low** | **+⅔** | ≤ **640** | Auto; **Fluorescent** hoặc chỉnh tay dưới đèn văn phòng | **Portra 160**, chân dung, trong nhà |
+| 3 | sRGB | **Low** | **Medium High** | 0 | tới 1250 | Auto | Đen trắng, tone đậm kiểu Tri-X |
 
 Tất cả ở JPG fine+RAW. Lý do, từ ảnh thử trên máy (2026-11-17/18, `tests/shots`, 27 cặp):
 
-- **Profile 0 −⅓ EV**: ảnh đường phố trời âm u có nhiều trời bị cháy 14–23% khung hình *ngay trong RAW*
-  (trung vị cảnh gấp 2–3 lần mid-grey). Profile 0 dựng lại mỗi lần bật máy nên EV chỉ đặt được trong firmware;
-  khi trời chiếm nhiều khung thì xoay dial xuống thêm (−⅔).
+- **Kodachrome −⅓ EV**: ảnh đường phố trời âm u có nhiều trời bị cháy 14–23% khung hình *ngay trong RAW*
+  (trung vị cảnh gấp 2–3 lần mid-grey); khi trời chiếm nhiều khung thì xoay dial xuống thêm (−⅔). WB Daylight
+  như phim slide cân cho ánh sáng ngày: giờ vàng vẫn ấm, bóng râm vẫn xanh (Auto sẽ trung hoà cả hai).
 - **Portra +⅔ EV, Contrast Medium Low**: ảnh Portra trong nhà tối hơn mid-grey ~1,6 stop, 12–15% pixel gần đen;
   đường cong Portra có vùng tối sâu hơn Leica.
 - **WB trong nhà**: dưới đèn LED/huỳnh quang văn phòng, Auto WB để vùng xám ám xanh lá (a\* −3…−6) ở cả Portra
   *và* Leica gốc, nên là AWB của máy, không phải look. Ảnh ngoài trời trung tính (a\*/b\* ≈ −1/+1).
-- **ISO ≤ 640**: CCD M8 nhiễu nhiều ở 1250; look không tăng noise nhưng không che được.
+- **ISO ≤ 640** cho ảnh màu: CCD M8 nhiễu nhiều ở 1250; look không tăng noise nhưng không che được. Đen trắng
+  không có nhiễu màu nên 1250 trông như hạt phim.
 - **Đen trắng ở EV 0**: tấm thử ở +1 EV cháy 53% khung hình; ở EV 0 không cháy, không bệt.
 
-- Profile 0 không cấu hình được; với `--raw-default --ev-default -1`, mặc định của nó (sRGB, Standard,
-  JPG fine+RAW, −⅓ EV) chính là cài đặt Kodachrome.
+- Profile 0 không cấu hình được; với `--raw-default`, mặc định của nó là sRGB, Standard, JPG fine+RAW, 0 EV,
+  tức Leica gốc.
 - Các mức Saturation/Contrast khác vẫn hoạt động, chồng lên từng look.
 - JPG Adobe RGB và ECI RGB có nhúng ICC: xem/xuất bằng app có quản lý màu (Lightroom, Photos, trình duyệt);
   convert sang sRGB trước khi đăng lên app bỏ qua ICC.
@@ -131,10 +134,10 @@ Tất cả ở JPG fine+RAW. Lý do, từ ảnh thử trên máy (2026-11-17/18,
   thô, white balance "As Shot" bằng của JPG.
 
 **3. Look trên thẻ** (bộ chọn picture profile): ở chế độ chụp INFO → UP → chọn look → SET → INFO.
-Look thay slot **sRGB** (Kodachrome) đến khi tắt máy; Portra, Leica và đen trắng giữ nguyên. Nạp
-`DEFAULT` để quay lại mà không cần tắt máy. Lần đầu: nạp `TRIX400` và chụp ở sRGB; JPG đen trắng = look trên
-thẻ mang cả màu (ma trận Tri-X là đơn sắc), JPG còn màu nhưng tone Tri-X = chỉ mang tone (khi đó nên dùng
-bản `--dial-ev`).
+Look thay sRGB Saturation Standard (profile 0, Leica gốc) đến khi tắt máy; Kodachrome, Portra và đen trắng giữ
+nguyên. Nạp `DEFAULT` để quay lại mà không cần tắt máy. Lần đầu: nạp `TRIX400` và chụp sRGB Standard; JPG đen
+trắng = look trên thẻ mang cả màu (ma trận Tri-X là đơn sắc), JPG còn màu nhưng tone Tri-X = chỉ mang tone (khi
+đó nên dùng bản `--dial-ev`).
 
 **4. Kiểm tra**
 
@@ -277,15 +280,15 @@ file đó trên máy, nên được nhận làm base.
 
 ```sh
 python3 tools/m8lut.py build --base firmware/dng/m8-2_014-dng-profiles-dial-iso.upd \
-    --srgb SFL_Kodachrome_64 --adobe SFL_Portra_160_Endura --bw eci \
-    --out m8-2_014-dng14-picker-dial-kodachrome-portra-bw.upd
-python3 tools/m8lut.py lut --from build/m8-2_014-dng14-picker-dial-kodachrome-portra-bw.upd \
-    --name VELVIA50 --srgb SFL_Velvia_50          # -> build/PROFILES/VELVIA50.LUT
+    --adobe SFL_Kodachrome_64 --eci SFL_Portra_160_Endura --bw srgb --raw-default \
+    --out m8-2_014-dng14-picker-dialiso-stock0-kodachrome-portra-bw-raw.upd
+python3 tools/m8lut.py lut --from build/m8-2_014-dng14-picker-dialiso-stock0-kodachrome-portra-bw-raw.upd \
+    --name VELVIA50 --srgb SFL_Velvia_50 --bw srgb   # -> build/PROFILES/VELVIA50.LUT
 ```
 
-- Mỗi `.LUT` dựng từ GAMMA **đã flash** và chỉ đổi slot sRGB, nên nạp vào không xoá Portra (Adobe) hay
-  Leica/B&W (ECI). Bộ chọn chỉ kiểm kích thước + 24 byte đầu header, look không đụng tới. `DEFAULT.LUT`
-  = bảng đã flash; tắt máy cũng về lại nó.
+- Mỗi `.LUT` dựng từ GAMMA **đã flash** và chỉ đổi slot sRGB; `--bw srgb` giữ sRGB Saturation Low là đen
+  trắng, nên nạp vào không xoá Kodachrome (Adobe), Portra (ECI) hay đen trắng. Bộ chọn chỉ kiểm kích thước +
+  24 byte đầu header, look không đụng tới. `DEFAULT.LUT` = bảng đã flash; tắt máy cũng về lại nó.
 - Bộ trên thẻ (đủ 10 chỗ của bộ chọn): `DEFAULT`, `PORTRA16`, `PORTRA4`, `GOLD200`, `EKTAR100`, `PRO400H`,
   `EKTA100`, `VELVIA50`, `PROVIA`, `TRIX400` (ΔE00 fit: Tri-X 1.1, Pro 400H 3.4, Gold 4.2, Portra 400 4.3,
   Ektar 4.7, Provia 4.8, Ektachrome 5.1, Velvia 5.8). Pro 400H in trên Fuji Crystal Archive Maxima, Ektar 100

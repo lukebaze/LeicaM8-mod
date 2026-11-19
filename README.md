@@ -17,9 +17,9 @@
 
 | Colour space (camera menu) | JPG look |
 |---|---|
-| sRGB | Kodachrome 64, slide viewed at D65 |
-| Adobe RGB | Portra 160 printed on Kodak Portra Endura |
-| ECI RGB | Leica stock |
+| sRGB | Leica stock; Saturation Low = black & white |
+| Adobe RGB | Kodachrome 64, slide viewed at D65 |
+| ECI RGB | Portra 160 printed on Kodak Portra Endura |
 
 This project edits `LUTS/GAMMA` (colour matrices + tone curves) and, with `--raw-default`, one
 instruction of the factory-settings template. The optional base, a 14-bit DNG build of
@@ -32,7 +32,8 @@ code. They never overlap; the bootloader and SD-card updater stay stock.
 
 ## What's working
 
-Tested on one M8 (firmware 2.014), 2026-11-17/18.
+Tested on one M8 (firmware 2.014), 2026-11-17/18, with the earlier layout (Kodachrome in sRGB, Portra in
+Adobe RGB, B&W in ECI). The current layout moves the same matrices and curves to other slots: ⏳ camera.
 
 | Feature | Status | Evidence |
 |---|---|---|
@@ -63,7 +64,7 @@ Straight out of the camera, resized, EXIF stripped; Adobe/ECI converted to sRGB 
   <img src="docs/samples/bw-eci-saturation-low.jpg" alt="Office with a laptop and a plant, black and white" width="49%">
 </p>
 
-Top: Kodachrome 64 (sRGB, profile 0). Middle: Portra 160 (Adobe RGB, indoor) and Provia 100F loaded
+Shot with the earlier layout. Top: Kodachrome 64 (then sRGB). Middle: Portra 160 (then Adobe RGB, indoor) and Provia 100F loaded
 from the card (`PROVIA.LUT`). Bottom: black & white (ECI, Saturation Low).
 
 Known limits: one 3×3 matrix + one curve per slot (Kodachrome yellows/blues lighter than the
@@ -79,15 +80,15 @@ colour-managed viewing.
 ## Setup on the camera
 
 Recommended build: `--base` gasdevmco's `dng --meta --profiles --dial-ev --iso` file (`cf965505…`; picker + dial EV/ISO, all pieces camera-tested by gasdevmco, the combination emulator-tested: m8_evtest 260/0),
-`--srgb SFL_Kodachrome_64 --adobe SFL_Portra_160_Endura --bw eci --raw-default --ev-default -1`, plus the card looks
-(`build/PROFILES`, see *More looks from the card*). The colour slots and the 14-bit DNG are
-camera-checked (2026-11-17, on the `--dial-ev` base; the PXA pieces of this base were camera-tested
-by gasdevmco as this exact file).
+`--adobe SFL_Kodachrome_64 --eci SFL_Portra_160_Endura --bw srgb --raw-default`, plus the card looks
+(`build/PROFILES`, see *More looks from the card*). Profile 0 (sRGB Standard, 0 EV) stays Leica stock.
+The looks, B&W and the 14-bit DNG are camera-checked in the earlier layout (2026-11-17, on the
+`--dial-ev` base; the PXA pieces of this base were camera-tested by gasdevmco as this exact file).
 
 ```sh
 python3 tools/m8lut.py build --base firmware/dng/m8-2_014-dng-profiles-dial-iso.upd \
-    --srgb SFL_Kodachrome_64 --adobe SFL_Portra_160_Endura --bw eci --raw-default --ev-default -1 \
-    --out m8-2_014-dng14-picker-dialiso-kodachrome-portra-bw-raw-ev-1.upd
+    --adobe SFL_Kodachrome_64 --eci SFL_Portra_160_Endura --bw srgb --raw-default \
+    --out m8-2_014-dng14-picker-dialiso-stock0-kodachrome-portra-bw-raw.upd
 ```
 
 **1. Flash** (Leica's procedure)
@@ -107,25 +108,26 @@ the factory default, rebuilt at every power-on.
 
 | Profile | Color Management | Saturation | Contrast | EV | ISO | WB | Use |
 |---|---|---|---|---|---|---|---|
-| 0 (factory, not saveable) | sRGB | Standard | Standard | −⅓ (`--ev-default -1`) | 160 | Auto | **Kodachrome 64**, daylight |
-| 1 | Adobe RGB | Standard | **Medium Low** | **+⅔** | ≤ **640** | Auto; **Fluorescent** or manual under office light | **Portra 160**, people, indoor |
-| 2 | ECI RGB | Standard | Standard | 0 | as needed | Auto | Leica stock |
-| 3 | ECI RGB | **Low** | **Medium High** | 0 | as needed | Auto | Black & white, Tri-X-like punch |
+| 0 (factory, not saveable) | sRGB | Standard | Standard | 0 | 160 | Auto | Leica stock |
+| 1 | Adobe RGB | Standard | Standard | **−⅓** | **160** | **Daylight** | **Kodachrome 64**, sun, street |
+| 2 | ECI RGB | Standard | **Medium Low** | **+⅔** | ≤ **640** | Auto; **Fluorescent** or manual under office light | **Portra 160**, people, indoor |
+| 3 | sRGB | **Low** | **Medium High** | 0 | up to 1250 | Auto | Black & white, Tri-X-like punch |
 
 All in JPG fine+RAW. Why, from the camera tests (2026-11-17/18, `tests/shots`, 27 pairs):
 
-- **Profile 0 −⅓ EV**: overcast street shots with sky in the frame clipped 14–23 % of the frame *in the
-  RAW* (scene median 2–3× mid-grey). Profile 0 is rebuilt at every power-on, so its EV can only be set
-  in firmware; dial further down (−⅔) when the sky is large.
+- **Kodachrome −⅓ EV**: overcast street shots with sky in the frame clipped 14–23 % of the frame *in the
+  RAW* (scene median 2–3× mid-grey); dial further down (−⅔) when the sky is large. WB Daylight like the
+  daylight-balanced slide film: golden hour stays warm, shade stays blue (Auto would neutralise both).
 - **Portra +⅔ EV, Contrast Medium Low**: indoor Portra shots were ~1.6 stops under mid-grey with 12–15 %
   of pixels near black; Portra's curve has deeper shadows than Leica's.
 - **WB indoors**: under office LED/fluorescent light Auto WB left greys green (a\* −3…−6) in Portra *and*
   Leica stock, so it is the camera's AWB, not the look. Daylight shots were neutral (a\*/b\* ≈ −1/+1).
-- **ISO ≤ 640**: the M8 CCD is noisy at 1250; the looks add no noise gain but can't hide it.
+- **ISO ≤ 640** for colour: the M8 CCD is noisy at 1250; the looks add no noise gain but can't hide it.
+  B&W has no chroma noise, so 1250 reads as grain.
 - **B&W at EV 0**: the +1 EV test shot clipped 53 % of the frame; at 0 EV nothing clipped or crushed.
 
-- Profile 0 can't be configured; with `--raw-default --ev-default -1` its defaults (sRGB, Standard,
-  JPG fine+RAW, −⅓ EV) already are the Kodachrome setup.
+- Profile 0 can't be configured; with `--raw-default` its defaults are sRGB, Standard, JPG fine+RAW, 0 EV,
+  i.e. Leica stock.
 - Other Saturation/Contrast steps keep working on top of each look.
 - Adobe RGB and ECI RGB JPGs carry their ICC profile: view or export them in colour-managed apps
   (Lightroom, Photos, browsers); convert to sRGB before posting to apps that ignore ICC.
@@ -133,10 +135,10 @@ All in JPG fine+RAW. Why, from the camera tests (2026-11-17/18, `tests/shots`, 2
   white balance "As Shot" = the JPG's.
 
 **3. Card looks** (picture-profile picker): in shooting mode INFO → UP → choose a look → SET → INFO.
-The look replaces the **sRGB** slot (Kodachrome) until power-off; Portra, Leica and B&W stay. Load
-`DEFAULT` to go back without switching off. First time: load `TRIX400` and shoot in sRGB; a black &
-white JPG means card looks carry their colour (the Tri-X matrix is monochrome), a colour JPG with
-Tri-X tone means only their tone (then prefer the `--dial-ev` build).
+The look replaces sRGB Saturation Standard (profile 0, Leica stock) until power-off; Kodachrome, Portra and
+B&W stay. Load `DEFAULT` to go back without switching off. First time: load `TRIX400` and shoot sRGB
+Standard; a black & white JPG means card looks carry their colour (the Tri-X matrix is monochrome), a
+colour JPG with Tri-X tone means only their tone (then prefer the `--dial-ev` build).
 
 **4. Check**
 
@@ -283,15 +285,16 @@ flashed and camera-tested as that exact file, so it is an accepted base here.
 
 ```sh
 python3 tools/m8lut.py build --base firmware/dng/m8-2_014-dng-profiles-dial-iso.upd \
-    --srgb SFL_Kodachrome_64 --adobe SFL_Portra_160_Endura --bw eci \
-    --out m8-2_014-dng14-picker-dial-kodachrome-portra-bw.upd
-python3 tools/m8lut.py lut --from build/m8-2_014-dng14-picker-dial-kodachrome-portra-bw.upd \
-    --name VELVIA50 --srgb SFL_Velvia_50          # -> build/PROFILES/VELVIA50.LUT
+    --adobe SFL_Kodachrome_64 --eci SFL_Portra_160_Endura --bw srgb --raw-default \
+    --out m8-2_014-dng14-picker-dialiso-stock0-kodachrome-portra-bw-raw.upd
+python3 tools/m8lut.py lut --from build/m8-2_014-dng14-picker-dialiso-stock0-kodachrome-portra-bw-raw.upd \
+    --name VELVIA50 --srgb SFL_Velvia_50 --bw srgb   # -> build/PROFILES/VELVIA50.LUT
 ```
 
-- Every `.LUT` starts from the **flashed** GAMMA and changes only the sRGB slot, so loading one never
-  wipes Portra (Adobe) or Leica/B&W (ECI). The picker checks only size + the first 24 header bytes,
-  which the looks never touch. `DEFAULT.LUT` = the flashed table; power-off also restores it.
+- Every `.LUT` starts from the **flashed** GAMMA and changes only the sRGB slot; `--bw srgb` keeps
+  sRGB Saturation Low black & white, so loading one never wipes Kodachrome (Adobe), Portra (ECI) or B&W.
+  The picker checks only size + the first 24 header bytes, which the looks never touch.
+  `DEFAULT.LUT` = the flashed table; power-off also restores it.
 - Card set (all 10 of the picker's slots): `DEFAULT`, `PORTRA16`, `PORTRA4`, `GOLD200`, `EKTAR100`,
   `PRO400H`, `EKTA100`, `VELVIA50`, `PROVIA`, `TRIX400` (fit ΔE00: Tri-X 1.1, Pro 400H 3.4, Gold 4.2,
   Portra 400 4.3, Ektar 4.7, Provia 4.8, Ektachrome 5.1, Velvia 5.8). Pro 400H prints on Fuji Crystal
