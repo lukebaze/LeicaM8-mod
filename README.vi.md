@@ -32,22 +32,22 @@ Hai phần không chồng nhau; bootloader và updater thẻ SD giữ nguyên g�
 
 ## Đang chạy được gì
 
-Thử trên một máy M8 (firmware 2.014), 2026-11-17/18, với cách xếp cũ (Kodachrome ở sRGB, Portra ở Adobe RGB,
-đen trắng ở ECI). Cách xếp hiện tại chỉ chuyển cùng ma trận và đường cong sang slot khác: ⏳ trên máy.
+Thử trên một máy M8 (firmware 2.014): 2026-11-17/18 với cách xếp cũ (Kodachrome ở sRGB, Portra ở Adobe RGB,
+đen trắng ở ECI), 2026-11-20 với cách xếp hiện tại (44 cặp JPG+RAW, L…391–436).
 
 | Tính năng | Trạng thái | Bằng chứng |
 |---|---|---|
 | Ma trận màu GAMMA điều khiển JPG | ✅ trên máy | `bw-test`: JPG sRGB đen trắng tuyệt đối (R = G = B mọi pixel), cùng cảnh ở Adobe RGB vẫn có màu |
-| Kodachrome 64 (Color space sRGB) | ✅ trên máy | dựng lại JPG từ RAW 14-bit của chính nó: bảng đã flash ΔE00 3.5, bảng Leica 6.9 |
-| Portra 160 in Endura (Adobe RGB) | ✅ trên máy | lệch 4,4 mức với bảng đã flash so với 15,7 với bảng Leica; có nhúng ICC Adobe RGB (1998) |
-| Leica gốc (ECI RGB) | ✅ không đổi | slot ECI giống gốc từng byte; có nhúng ECI-RGB.icc |
-| Đen trắng (ECI, Saturation Low) | ✅ trên máy | 2026-11-18, L…367: ECI-RGB.icc, Saturation Low, R = G = B ở mọi pixel |
+| Kodachrome 64 (Adobe RGB) | ✅ trên máy | 2026-11-20, 34 ảnh: dựng lại JPG từ RAW 14-bit của chính nó, lệch 1–9 mức với bảng đã flash so với 5–14 với bảng Leica (cách xếp cũ ở sRGB: ΔE00 3.5 so với 6.9) |
+| Portra 160 in Endura (ECI RGB) | ✅ trên máy | 2026-11-20, 6 ảnh: lệch 3–5 mức với bảng đã flash so với 11 với bảng Leica (11 so với 17 ở ISO 1250); có nhúng ECI-RGB.icc |
+| Leica gốc (sRGB, profile 0) | ✅ trên máy | 2026-11-20, 3 ảnh: slot sRGB giống gốc từng byte, hai bảng dựng lại JPG như nhau |
+| Đen trắng (sRGB, Saturation Low) | ✅ trên máy | 2026-11-20, L…391: R = G = B ở mọi pixel |
 | DNG 14-bit (`.RAW`, 21.049.052 byte) | ✅ trên máy | 5/5 cặp: AsShotNeutral == JPG, 18/18 thẻ MakerNote == JPG (`m8_metacheck` của gasdevmco) |
 | JPG fine+RAW giữ qua tắt/bật máy | ✅ trên máy | patch của gasdevmco; mọi ảnh từ đó đều ra JPG + RAW |
-| `--raw-default` (mặc định JPG fine+RAW), `--ev-default -1` (−⅓ EV) | ✅ giả lập, ⏳ trên máy | `research/settings_emutest.py --ev -1` 24/24 trên chính code cài đặt của máy: chỉ trường compression và EV đổi |
+| `--raw-default` (mặc định JPG fine+RAW) | ✅ trên máy | 2026-11-20: mọi ảnh sau khi flash đều ra JPG + RAW; profile 0 ở 0 EV |
 | Dial sau: EV, UP/DOWN → ISO | ✅ từng phần trên máy (gasdevmco), ⏳ bản này | tổ hợp bộ chọn + dial: `m8_evtest` của gasdevmco 260/0 |
 | Bộ chọn picture profile, look `.LUT` trên thẻ | ✅ bộ chọn trên máy (gasdevmco, đường cong), ⏳ màu | `TRIX400.LUT` (các hàng ma trận bằng nhau) quyết định GAMMA gửi lại có mang cả ma trận không |
-| User profile | ✅ trên máy | lưu được profile 1–3; 0 là mặc định gốc, dựng lại mỗi lần bật máy |
+| User profile | ✅ trên máy | lưu được profile 1–3, giữ cả Color space, Contrast, EV, ISO và WB (2026-11-20); 0 là mặc định gốc, dựng lại mỗi lần bật máy |
 | Highlight CCD bị clip vẫn trung tính | ✅ trên máy | `research/matrix_bench.py`: 144k px clip trong RAW, chroma JPG trung vị 0, p95 4–9 mức |
 
 ### Ảnh mẫu (JPG từ máy, sáng âm u, 2026-11-18)
@@ -108,15 +108,17 @@ gốc, máy dựng lại mỗi lần bật.
 | Profile | Color Management | Saturation | Contrast | EV | ISO | WB | Dùng cho |
 |---|---|---|---|---|---|---|---|
 | 0 (mặc định, không lưu được) | sRGB | Standard | Standard | 0 | 160 | Auto | Leica gốc |
-| 1 | Adobe RGB | Standard | Standard | **−⅓** | **160** | **Daylight** | **Kodachrome 64**, nắng, đường phố |
-| 2 | ECI RGB | Standard | **Medium Low** | **+⅔** | ≤ **640** | Auto; **Fluorescent** hoặc chỉnh tay dưới đèn văn phòng | **Portra 160**, chân dung, trong nhà |
+| 1 | Adobe RGB | Standard | Standard | **−⅓** | **160** | Auto | **Kodachrome 64**, nắng, đường phố |
+| 2 | ECI RGB | Standard | **Medium Low** | **+⅔** | ≤ **640** | Auto; **Fluorescent** chỉ khi dưới đèn văn phòng | **Portra 160**, chân dung, trong nhà |
 | 3 | sRGB | **Low** | **Medium High** | 0 | tới 1250 | Auto | Đen trắng, tone đậm kiểu Tri-X |
 
 Tất cả ở JPG fine+RAW. Lý do, từ ảnh thử trên máy (2026-11-17/18, `tests/shots`, 27 cặp):
 
 - **Kodachrome −⅓ EV**: ảnh đường phố trời âm u có nhiều trời bị cháy 14–23% khung hình *ngay trong RAW*
-  (trung vị cảnh gấp 2–3 lần mid-grey); khi trời chiếm nhiều khung thì xoay dial xuống thêm (−⅔). WB Daylight
-  như phim slide cân cho ánh sáng ngày: giờ vàng vẫn ấm, bóng râm vẫn xanh (Auto sẽ trung hoà cả hai).
+  (trung vị cảnh gấp 2–3 lần mid-grey); chỉ xoay xuống thêm (−⅔) khi trời chiếm nhiều khung. Trong bóng râm, dưới
+  tán cây dùng 0 đến +⅔: ở −⅔ các ảnh như vậy (2026-11-20) có 30–73% gần đen mà RAW không cháy chỗ nào.
+- **WB Auto**: WB cố định lưu trong profile đi theo nó mọi nơi. Portra lưu WB trong nhà ra ngoài trời bị ám xanh
+  dương (b\* −6…−10); Kodachrome để Daylight thì vùng xám hơi ngả xanh lá (a\* −5…−6).
 - **Portra +⅔ EV, Contrast Medium Low**: ảnh Portra trong nhà tối hơn mid-grey ~1,6 stop, 12–15% pixel gần đen;
   đường cong Portra có vùng tối sâu hơn Leica.
 - **WB trong nhà**: dưới đèn LED/huỳnh quang văn phòng, Auto WB để vùng xám ám xanh lá (a\* −3…−6) ở cả Portra

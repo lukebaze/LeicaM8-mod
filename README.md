@@ -32,22 +32,22 @@ code. They never overlap; the bootloader and SD-card updater stay stock.
 
 ## What's working
 
-Tested on one M8 (firmware 2.014), 2026-11-17/18, with the earlier layout (Kodachrome in sRGB, Portra in
-Adobe RGB, B&W in ECI). The current layout moves the same matrices and curves to other slots: ⏳ camera.
+Tested on one M8 (firmware 2.014): 2026-11-17/18 with the earlier layout (Kodachrome in sRGB, Portra in
+Adobe RGB, B&W in ECI), 2026-11-20 with the current layout (44 JPG+RAW pairs, L…391–436).
 
 | Feature | Status | Evidence |
 |---|---|---|
 | GAMMA colour matrices drive the JPG | ✅ camera | `bw-test`: sRGB JPG exactly monochrome (R = G = B in every pixel), Adobe RGB shot of the same scene in colour |
-| Kodachrome 64 (Colour space sRGB) | ✅ camera | JPG predicted from its own 14-bit RAW: flashed table ΔE00 3.5, Leica's table 6.9 |
-| Portra 160 on Endura (Adobe RGB) | ✅ camera | prediction 4.4 levels with the flashed table vs 15.7 with Leica's; Adobe RGB (1998) ICC embedded |
-| Leica stock (ECI RGB) | ✅ unchanged | ECI slot byte-identical to stock; ECI-RGB.icc embedded |
-| Black & white (ECI, Saturation Low) | ✅ camera | 2026-11-18, L…367: ECI-RGB.icc, Saturation Low, R = G = B in every pixel |
+| Kodachrome 64 (Adobe RGB) | ✅ camera | 2026-11-20, 34 shots: JPG predicted from its own 14-bit RAW within 1–9 levels with the flashed table vs 5–14 with Leica's (earlier layout in sRGB: ΔE00 3.5 vs 6.9) |
+| Portra 160 on Endura (ECI RGB) | ✅ camera | 2026-11-20, 6 shots: 3–5 levels with the flashed table vs 11 with Leica's (11 vs 17 at ISO 1250); ECI-RGB.icc embedded |
+| Leica stock (sRGB, profile 0) | ✅ camera | 2026-11-20, 3 shots: sRGB slot byte-identical to stock, both tables predict the JPG equally |
+| Black & white (sRGB, Saturation Low) | ✅ camera | 2026-11-20, L…391: R = G = B in every pixel |
 | 14-bit DNG (`.RAW`, 21,049,052 bytes) | ✅ camera | 5/5 pairs: AsShotNeutral == JPG, 18/18 MakerNote tags == JPG (gasdevmco `m8_metacheck`) |
 | JPG fine+RAW kept through power cycles | ✅ camera | gasdevmco patch; every shot since gave JPG + RAW |
-| `--raw-default` (factory default JPG fine+RAW), `--ev-default -1` (−⅓ EV) | ✅ emulator, ⏳ camera | `research/settings_emutest.py --ev -1` 24/24 on the camera's own settings code: only the compression and EV fields change |
+| `--raw-default` (factory default JPG fine+RAW) | ✅ camera | 2026-11-20: every shot after the flash gave JPG + RAW; profile 0 at 0 EV |
 | Rear dial: EV, UP/DOWN → ISO | ✅ pieces on camera (gasdevmco), ⏳ this build | picker + dial combination: gasdevmco `m8_evtest` 260/0 |
 | Picture-profile picker, `.LUT` card looks | ✅ picker on camera (gasdevmco, curves), ⏳ colour | `TRIX400.LUT` (all-equal matrix rows) decides whether a re-sent GAMMA also carries the matrices |
-| User profiles | ✅ camera | profiles 1–3 saveable; 0 is the factory default, rebuilt at every power-on |
+| User profiles | ✅ camera | profiles 1–3 saveable and keep Colour space, Contrast, EV, ISO and WB (2026-11-20); 0 is the factory default, rebuilt at every power-on |
 | Clipped CCD highlights stay neutral | ✅ camera | `research/matrix_bench.py`: 144k RAW-clipped px, JPG chroma median 0, p95 4–9 levels |
 
 ### Sample shots (camera JPGs, overcast morning, 2026-11-18)
@@ -109,15 +109,17 @@ the factory default, rebuilt at every power-on.
 | Profile | Color Management | Saturation | Contrast | EV | ISO | WB | Use |
 |---|---|---|---|---|---|---|---|
 | 0 (factory, not saveable) | sRGB | Standard | Standard | 0 | 160 | Auto | Leica stock |
-| 1 | Adobe RGB | Standard | Standard | **−⅓** | **160** | **Daylight** | **Kodachrome 64**, sun, street |
-| 2 | ECI RGB | Standard | **Medium Low** | **+⅔** | ≤ **640** | Auto; **Fluorescent** or manual under office light | **Portra 160**, people, indoor |
+| 1 | Adobe RGB | Standard | Standard | **−⅓** | **160** | Auto | **Kodachrome 64**, sun, street |
+| 2 | ECI RGB | Standard | **Medium Low** | **+⅔** | ≤ **640** | Auto; **Fluorescent** only under office light | **Portra 160**, people, indoor |
 | 3 | sRGB | **Low** | **Medium High** | 0 | up to 1250 | Auto | Black & white, Tri-X-like punch |
 
 All in JPG fine+RAW. Why, from the camera tests (2026-11-17/18, `tests/shots`, 27 pairs):
 
 - **Kodachrome −⅓ EV**: overcast street shots with sky in the frame clipped 14–23 % of the frame *in the
-  RAW* (scene median 2–3× mid-grey); dial further down (−⅔) when the sky is large. WB Daylight like the
-  daylight-balanced slide film: golden hour stays warm, shade stays blue (Auto would neutralise both).
+  RAW* (scene median 2–3× mid-grey); dial further down (−⅔) only when the sky is large. In shade or under
+  trees use 0 to +⅔: at −⅔ such shots (2026-11-20) were 30–73 % near black with nothing clipped in the RAW.
+- **WB Auto**: fixed WB saved in a profile follows it everywhere. Portra saved with an indoor WB came out
+  blue outdoors (b\* −6…−10); Kodachrome with Daylight left greys slightly green (a\* −5…−6).
 - **Portra +⅔ EV, Contrast Medium Low**: indoor Portra shots were ~1.6 stops under mid-grey with 12–15 %
   of pixels near black; Portra's curve has deeper shadows than Leica's.
 - **WB indoors**: under office LED/fluorescent light Auto WB left greys green (a\* −3…−6) in Portra *and*
