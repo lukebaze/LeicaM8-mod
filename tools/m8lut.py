@@ -10,6 +10,7 @@ Space 0 = Adobe RGB, 1 = sRGB, 2 = ECI RGB (the Colour space menu). JPG = curve(
   python3 tools/m8lut.py build [--base FILE] [--srgb LOOK] [--adobe LOOK] [--eci LOOK] [--bw SPACE] [--out NAME]
       LOOK = research/fits/fit_<LOOK>.npz, e.g. SFL_Portra_160_Endura. A space without a look keeps Leica's.
       --bw SPACE: that space's Saturation Low becomes black & white (Leica tone).
+      --blackfin-comp: in each look space, variant B := variant A (see build_look).
       --base: start from a gasdevmco/leica-m8-firmware 2.014 build (14-bit DNG, PXA only) instead of stock;
               accepted only if its SHA-256 is one of that project's published builds and GAMMA is stock.
   python3 tools/m8lut.py lut --from FLASHED.upd --name NAME [--srgb LOOK] ... [--bw-test]
@@ -124,7 +125,7 @@ def space_tools(space):
     return np.linalg.inv(to_xyz([(0.67, 0.33), (0.21, 0.71), (0.14, 0.08)], D50)) @ bradford @ srgb, lambda v: np.maximum(v, 0) ** (1 / 1.8)
 
 
-def build_look(d, g, fit, space=1):
+def build_look(d, g, fit, space=1, comp=False):
     """Look for one colour space. The look is defined in linear sRGB, so it is applied there on top of the
     space's own Leica rendering: matrix_i' = T . M_look . T^-1 . matrix_i (T = I for sRGB). Contrast steps
     kept as Leica's maps (standard value -> value at step c). Curve, made for the CCD:
@@ -159,18 +160,24 @@ def build_look(d, g, fit, space=1):
             new = np.round(255 * enc(dec_srgb(new / 255)))
         patches[g + CURVE_OFF + CURVE_LEN * (5 * space + c)] = bytes(np.maximum.accumulate(new).clip(0, 255).astype(np.uint8))
     Ms = T @ M @ np.linalg.inv(T)
+    # The Blackfin picks the variant per pixel after WB: B (odd index) where G > B, A (even) where B > G;
+    # A - B is a multiple of (G - B), so the switch is continuous. comp: B := A, the look renders
+    # curve(M_A . x) everywhere, as the research model does (Fable analysis 2026-11-20, 62 shots).
     for i in range(10 * space, 10 * space + 10):
-        patches[g + MAT_OFF + 18 * i] = q13((Ms @ np.array(matrix(d, g, i))).tolist())
+        src = i & ~1 if comp else i
+        patches[g + MAT_OFF + 18 * i] = q13((Ms @ np.array(matrix(d, g, src))).tolist())
+    if comp:
+        assert all(patches[g + MAT_OFF + 18 * i] == patches[g + MAT_OFF + 18 * (i + 1)] for i in range(10 * space, 10 * space + 10, 2))
     return patches, gain
 
 
-def gamma_patches(d, g, looks, bw=None, say=print):
+def gamma_patches(d, g, looks, bw=None, say=print, comp=False):
     """{absolute offset: bytes} for looks {space: LOOK} and an optional B&W Saturation Low in space `bw`.
     d must hold Leica's stock GAMMA: looks are composed on Leica's own matrices and curves."""
     import numpy as np
     patches = {}
     for s, name in looks.items():
-        p, gain = build_look(d, g, np.load(os.path.join(ROOT, 'research', 'fits', f'fit_{name}.npz')), SPACES[s])
+        p, gain = build_look(d, g, np.load(os.path.join(ROOT, 'research', 'fits', f'fit_{name}.npz')), SPACES[s], comp)
         patches.update(p)
         say(f'{s:5s} <- {name}  (exposure gain {gain:.3f}, {np.log2(gain):+.2f} EV below mid-grey)')
     if bw:
@@ -208,7 +215,7 @@ def main():
         if not looks and not opt('--bw'):
             sys.exit(__doc__)
         print(f'base: {BASES.get(hashlib.sha256(open(base, "rb").read()).hexdigest(), "Leica stock 2.014")}')
-        patches = gamma_patches(d, g, looks, opt('--bw'))
+        patches = gamma_patches(d, g, looks, opt('--bw'), comp='--blackfin-comp' in a)
         if '--raw-default' in a:
             # Factory profile template 0x20F9C: `strh lr, [r0, #0x2c]` (compression = 1, JPG fine) becomes
             # `strh r7, [r0, #0x2c]` (r7 = 5 there: JPG fine+RAW). One register field in one instruction,
@@ -244,7 +251,7 @@ def main():
         f, fg = load(src, False)
         assert f[fg:fg + 24] == d[g:g + 24], 'source GAMMA header is not stock'
         lut = bytearray(f[fg:fg + 31760])
-        patches = gamma_patches(d, g, looks, opt('--bw'))
+        patches = gamma_patches(d, g, looks, opt('--bw'), comp='--blackfin-comp' in a)
         if '--bw-test' in a:      # the bw-test changes, to prove the Blackfin takes matrices from a re-sent GAMMA
             patches.update({g + MAT_OFF + 18 * s: q13([[0.299, 0.587, 0.114]] * 3) for s in (14, 15)})
             patches[g + CURVE_OFF + CURVE_LEN * 7] = bytes(round(v * 0.6) for v in curve(d, g, 7))

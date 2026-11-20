@@ -20,3 +20,9 @@ def raw_rgb(path):
 def bin2(x, k):
     h, w = x.shape[0] // k * k, x.shape[1] // k * k
     return x[:h, :w].reshape(h // k, k, w // k, k, -1).mean((1, 3))
+
+
+def blackfin_matrix(R, MA, MB):
+    """The camera's matrix step: variant B (odd index) where G > B after WB, else A (even index).
+    A - B is a multiple of (G - B), so it is continuous; with B = A (--blackfin-comp) it is R @ MA.T."""
+    return np.where((R[..., 1] > R[..., 2])[..., None], R @ MB.T, R @ MA.T)

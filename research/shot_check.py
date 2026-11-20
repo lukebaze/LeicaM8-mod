@@ -15,11 +15,11 @@ from PIL.ImageCms import ImageCmsProfile, getProfileDescription
 HERE = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, os.path.join(HERE, '..', 'tools'))
 import m8lut
 from film_fit import lab, de2000
-from shot_check_lib import raw_rgb, bin2
+from shot_check_lib import raw_rgb, bin2, blackfin_matrix
 
-flashed, jpgs = sys.argv[1], sys.argv[2:]
-tables = {'stock': m8lut.load()[0], 'flashed': m8lut.load(flashed, False)[0]}
-_, g = m8lut.load()
+flashed, jpgs = sys.argv[1], sys.argv[2:]          # FLASHED: a .upd or a card .LUT (GAMMA at offset 0)
+tables = {'stock': m8lut.load(),
+          'flashed': (open(flashed, 'rb').read(), 0) if flashed.upper().endswith('.LUT') else m8lut.load(flashed, False)}
 
 def space_of(im):
     icc = im.info.get('icc_profile')
@@ -38,9 +38,9 @@ for jp in jpgs:
     J = bin2(np.asarray(im.convert('RGB'), float) / 255, 8)               # ~492 x 328
     R = bin2(raw_rgb(jp[:-4] + '.RAW'), 4)                                 # same scale (raw is half size)
     out = {}
-    for name, d in tables.items():
-        M = np.array(m8lut.matrix(d, g, 10 * sp + 4)); c = np.array(m8lut.curve(d, g, 5 * sp + 2), float) / 255
-        render = lambda s: np.interp(np.clip(np.clip(R * s, 0, 1) @ M.T, 0, 1), np.arange(2048) / 2047, c)
+    for name, (d, g) in tables.items():
+        MA, MB = (np.array(m8lut.matrix(d, g, 10 * sp + v)) for v in (4, 5)); c = np.array(m8lut.curve(d, g, 5 * sp + 2), float) / 255
+        render = lambda s: np.interp(np.clip(blackfin_matrix(np.clip(R * s, 0, 1), MA, MB), 0, 1), np.arange(2048) / 2047, c)
         best = None
         for s in np.linspace(0.6, 1.6, 51):                                  # exposure scale + shift, coarse
             P = render(s)

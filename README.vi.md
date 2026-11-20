@@ -163,10 +163,12 @@ Blackfin dùng các ma trận này, #14/#15 là sRGB Standard, và map không gi
   (`1742, 5858`) chưa rõ.
 - Chỉ số = 10·không gian màu + 2·bão hoà + biến thể. Không gian 1 = sRGB (định thức lớn nhất; 0/2 đoán
   Adobe/ECI theo thứ tự hàng đường cong). Bão hoà 0..4 = Low..High (định thức tăng đơn điệu).
-- Biến thể B: ở mức Standard đúng bằng biến thể A với cột G và B của **hàng đỏ** đổi chỗ (#14/#15); các mức
-  khác lệch thêm. **Trên máy: Saturation Standard dùng biến thể B** — ma trận khôi phục từ cặp RAW+JPG
-  (`research/matrix_bench.py`) cách B 0,22, cách A 1,12 ở Adobe RGB (486k px có màu)
-  và 0,28 so với 1,12 ở ECI RGB (433k px). Chưa rõ khi nào dùng A, nên build vẫn biến đổi cả hai.
+- Biến thể B: ở mức Standard đúng bằng biến thể A với cột G và B của **hàng đỏ** đổi chỗ (#14/#15); ở cả 15
+  cặp, A − B là bội của (0, +1, −1), nên A và B trùng nhau khi G = B. **Máy chọn theo từng pixel, sau WB:
+  B khi G > B, A khi B > G** (dự đoán không tham số trên 62 cặp RAW+JPG: ΔE00 trung vị 1,6 so với 5,2 nếu chỉ
+  dùng A, với Kodachrome/Adobe; điểm gãy fit tại G = B khớp hiệu A − B ở mọi không gian). Lá cây, da, màu vàng
+  đi qua B; trời và màu xanh dương đi qua A. `--blackfin-comp` chép A vào B ở các không gian có look, để look
+  ra `curve(A · x)` ở mọi pixel, đúng như mô hình nghiên cứu (⏳ trên máy: thử bằng thẻ `FLAT.LUT`).
 - #14 (sRGB Standard) gần nhất với ma trận cam→sRGB tính từ hệ số M8 của dcraw/Adobe.
 
 ## Nghiên cứu look (`research/film_fit.py`)

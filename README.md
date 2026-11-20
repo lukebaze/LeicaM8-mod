@@ -166,9 +166,12 @@ in colour. So the Blackfin uses these matrices, #14/#15 is sRGB Standard, and th
   Adobe/ECI, matching the tone-curve row order). Saturation 0..4 = Low..High (determinant rises
   monotonically).
 - Variant B: at Standard it is exactly variant A with the G and B coefficients of the **red row** swapped
-  (#14/#15); the other steps differ further. **Camera: Saturation Standard uses variant B** — the matrix
-  recovered from RAW+JPG pairs (`research/matrix_bench.py`) is 0.22 from B vs 1.12 from A in Adobe RGB
-  (486k coloured px) and 0.28 vs 1.12 in ECI RGB (433k px). What selects A is unknown, so builds transform both.
+  (#14/#15); in all 15 pairs A − B is a multiple of (0, +1, −1), so A and B agree where G = B.
+  **The camera picks per pixel, after white balance: B where G > B, A where B > G** (zero-parameter
+  prediction over 62 RAW+JPG pairs: median ΔE00 1.6 vs 5.2 with A only for Kodachrome/Adobe; a fitted
+  kink at G = B matches the A − B difference in every space). Foliage, skin and yellows go through B,
+  sky and blues through A. `--blackfin-comp` writes A into B in the look spaces, so a look renders
+  `curve(A · x)` everywhere, as its research model does (⏳ camera: card test `FLAT.LUT`).
 - #14 (sRGB Standard) is the closest to the camera→sRGB matrix derived from dcraw/Adobe's M8
   coefficients.
 
